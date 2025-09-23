@@ -1768,40 +1768,12 @@
 				<!-- 视频子板块 -->
 				<div id="study-video" class="study-subsection">
 					<div class="study-content" style="padding-top: 0px; background: transparent; margin-top: -60px;">
-						<!-- 视频容器 -->
-						<div class="video-container" style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-							<h4 style="color: #333; margin: 0 0 15px 0; text-align: center; font-size: 18px; font-weight: 600;">六爻排盘全流程</h4>
-							<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; background: #f5f5f5; border-radius: 8px; overflow: hidden;">
-								<iframe src="https://player.bilibili.com/player.html?bvid=BV1qDe2zeEoz&page=1&autoplay=0" 
-										scrolling="no" 
-										border="0" 
-										frameborder="no" 
-										framespacing="0" 
-										allowfullscreen="true"
-										style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
-								</iframe>
+						<!-- 清空原视频区域，改为“六爻”按钮入口 -->
+						<div class="tools-grid" style="margin-top: 10px;">
+							<div class="tool-button tool-1" onclick="openLiuYaoStudyVideo()">
+								<div class="tool-name">六爻</div>
 							</div>
-							<p style="margin-top: 15px; color: #666; font-size: 14px; text-align: center; line-height: 1.6;">
-								学习六爻排盘的完整流程，从基础概念到实际操作，助您快速掌握六爻占卜技巧。
-							</p>
 						</div>
-						
-						<!-- 示例：第二个视频容器 -->
-						<div class="video-container" style="background: white; border-radius: 12px; padding: 15px 20px 20px 20px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-							<h4 style="color: #333; margin: 0 0 15px 0; text-align: center; font-size: 18px; font-weight: 600;">更多精彩内容即将更新</h4>
-							<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; background: #f5f5f5; border-radius: 8px; overflow: hidden;">
-								<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #999;">
-									<div style="font-size: 48px; margin-bottom: 10px;">▶️</div>
-									<div style="font-size: 16px;">更多精彩内容即将更新</div>
-								</div>
-							</div>
-							<p style="margin-top: 15px; color: #666; font-size: 14px; text-align: center; line-height: 1.6;">
-								更多精彩内容即将更新
-							</p>
-						</div>
-						
-						<!-- 预留更多视频容器的位置 -->
-						<!-- 后续添加的视频可以复制上面的 video-container 结构 -->
 					</div>
 				</div>
 			</div>
@@ -1885,6 +1857,77 @@
 	</div>
 
 	<script>
+		// 学习视频多源加载（支持备用链路：B站/YouTube/小红书等）
+		function buildStudyVideos(){
+			const list = document.getElementById('study-video-list');
+			if(!list) return;
+			function normalizeVideoUrl(url){
+				try{
+					const u = new URL(url);
+					const host = u.hostname.toLowerCase();
+					// 处理 YouTube: youtu.be/ID 或 youtube.com/watch?v=ID -> embed
+					if(host.includes('youtu.be')){
+						const id = u.pathname.replace('/', '').trim();
+						if(id) return `https://www.youtube.com/embed/${id}`;
+					}
+					if(host.includes('youtube.com')){
+						const id = u.searchParams.get('v');
+						if(id) return `https://www.youtube.com/embed/${id}`;
+					}
+					return url;
+				}catch(e){ return url; }
+			}
+			const videos = [
+				{ title: '六爻排盘全流程', sources: ['https://youtu.be/-S-3SSg4dPg', 'http://xhslink.com/o/5wVSsxs00I9'] },
+				{ title: '六爻起卦1/3：大衍之术', sources: ['https://youtu.be/mr1BI3pDbLI', 'http://xhslink.com/o/4PITE22VFfA'] },
+				{ title: '六爻起卦2/3：铜钱起卦', sources: ['https://youtu.be/4ElPF5a8odM', 'http://xhslink.com/o/4PITE22VFfA'] },
+				{ title: '六爻起卦3/3：梅花易数起卦', sources: ['https://youtu.be/hfMML1UV1wo', 'http://xhslink.com/o/AUrMN4KjV6C'] }
+			];
+
+			function createCard({title, sources}){
+				const card = document.createElement('div');
+				card.className = 'video-container';
+				card.style.cssText = 'background: white; border-radius: 12px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+				const h4 = document.createElement('h4');
+				h4.textContent = title;
+				h4.style.cssText = 'color:#333;margin:0 0 15px 0;text-align:center;font-size:18px;font-weight:600;';
+				const wrap = document.createElement('div');
+				wrap.style.cssText = 'position:relative;width:100%;height:0;padding-bottom:56.25%;background:#f5f5f5;border-radius:8px;overflow:hidden;';
+				const frame = document.createElement('div');
+				frame.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
+				wrap.appendChild(frame);
+				card.appendChild(h4);
+				card.appendChild(wrap);
+
+				let idx = 0;
+				const iframe = document.createElement('iframe');
+				iframe.style.cssText = 'width:100%;height:100%;border:none;background:transparent;';
+				iframe.setAttribute('allowfullscreen', 'true');
+				iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+				iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+				frame.appendChild(iframe);
+
+				function next(){
+					if(idx >= sources.length){
+						frame.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#999;">视频加载失败，请稍后重试</div>';
+						return;
+					}
+					iframe.src = normalizeVideoUrl(sources[idx++]);
+					iframe.onerror = () => next();
+				}
+				next();
+				return card;
+			}
+
+			list.innerHTML = '';
+			videos.forEach(v => list.appendChild(createCard(v)));
+		}
+
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', buildStudyVideos);
+		} else {
+			buildStudyVideos();
+		}
 	(function(){
 		const stems = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
 		const branches = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
@@ -8652,6 +8695,54 @@
 		}
 
 		// ===== 工具功能 =====
+        // 学习视频入口 - 打开“六爻”视频合集
+        window.openLiuYaoStudyVideo = function(){
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0; left: 0; width: 100%; height: 100%;
+                background: transparent; z-index: 2147483647;
+                display: flex; justify-content: center; align-items: center;
+            `;
+            const content = document.createElement('div');
+            content.style.cssText = `
+                position: relative; width: 100%; height: 100%;
+                background: transparent; overflow: hidden;
+            `;
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '×';
+            closeBtn.style.cssText = `
+                position: fixed; top: 20px; right: 20px; z-index: 2147483647;
+                background: rgba(0,0,0,0.7); color: white; border: none;
+                font-size: 20px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            `;
+            closeBtn.onclick = () => document.body.removeChild(modal);
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = `width: 100%; height: 100%; border: none; background: transparent;`;
+            let pathIndex = 0;
+            const possiblePaths = [
+                '六爻排盘调用/学习-视频·六爻 调用.html',
+                './六爻排盘调用/学习-视频·六爻 调用.html',
+                '../六爻排盘调用/学习-视频·六爻 调用.html'
+            ];
+            function tryLoad(){
+                if(pathIndex >= possiblePaths.length){
+                    alert('无法加载“六爻”视频合集，请检查文件是否存在');
+                    document.body.removeChild(modal);
+                    return;
+                }
+                const url = possiblePaths[pathIndex++];
+                iframe.src = url;
+                iframe.onerror = () => tryLoad();
+            }
+            content.appendChild(iframe);
+            content.appendChild(closeBtn);
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            tryLoad();
+        }
 		window.openTool = function(toolId) {
 			console.log('打开工具:', toolId);
 			
