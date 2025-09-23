@@ -1712,9 +1712,9 @@
 				<!-- 练习子板块 -->
 				<div id="study-practice" class="study-subsection">
 					<div class="practice-container" style="background: transparent; margin-top: -60px;">
-						<div class="practice-button" onclick="startPractice('practice1')">
+                        <div class="practice-button" onclick="startPractice('practice1')">
 							<div class="practice-header">
-								<h3 class="practice-name">记忆64卦</h3>
+                                <h3 class="practice-name">64卦闯关</h3>
 								<div class="practice-status not-completed">未通关</div>
 							</div>
 							<div class="practice-difficulty">
@@ -1729,32 +1729,32 @@
 							</div>
 						</div>
 						
-						<div class="practice-button" onclick="startPractice('practice2')">
+                        <div class="practice-button" onclick="startPractice('practice2')">
 							<div class="practice-header">
-								<h3 class="practice-name">敬请期待</h3>
+                                <h3 class="practice-name">12时辰闯关</h3>
 								<div class="practice-status not-completed">未通关</div>
 							</div>
 							<div class="practice-difficulty">
 								<span class="difficulty-label">难度：</span>
 								<div class="difficulty-stars">
-									<span class="star">★</span>
-									<span class="star">★</span>
-									<span class="star">★</span>
-									<span class="star">★</span>
-									<span class="star">★</span>
+							<span class="star filled">★</span>
+							<span class="star">★</span>
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
 								</div>
 							</div>
 						</div>
 						
-						<div class="practice-button" onclick="startPractice('practice3')">
+                        <div class="practice-button" onclick="startPractice('practice3')">
 							<div class="practice-header">
-								<h3 class="practice-name">敬请期待</h3>
+                                <h3 class="practice-name">八卦闯关</h3>
 								<div class="practice-status not-completed">未通关</div>
 							</div>
 							<div class="practice-difficulty">
 								<span class="difficulty-label">难度：</span>
 								<div class="difficulty-stars">
-									<span class="star">★</span>
+                                    <span class="star filled">★</span>
 									<span class="star">★</span>
 									<span class="star">★</span>
 									<span class="star">★</span>
@@ -8411,7 +8411,7 @@
 					width: 100%;
 					height: 100%;
 					background: transparent;
-					z-index: 10000;
+					z-index: 2147483647;
 					display: flex;
 					justify-content: center;
 					align-items: center;
@@ -8438,7 +8438,7 @@
 					border: none;
 					font-size: 20px;
 					cursor: pointer;
-					z-index: 10001;
+					z-index: 2147483647;
 					width: 40px;
 					height: 40px;
 					border-radius: 50%;
@@ -8495,6 +8495,156 @@
 				document.body.appendChild(modal);
 				
 				tryLoadIframe();
+			} else if (practiceId === 'practice2') {
+				// 打开十二时辰闯关（iframe）- 与practice1一致的全屏透明样式
+				const modal = document.createElement('div');
+				modal.style.cssText = `
+					position: fixed;
+					top: 0;
+					left: 0;
+					width: 100%;
+					height: 100%;
+					background: transparent;
+					z-index: 2147483647;
+					display: flex;
+					justify-content: center;
+					align-items: center;
+				`;
+				const content = document.createElement('div');
+				content.style.cssText = `
+					background: transparent;
+					width: 100%;
+					height: 100%;
+					border: none;
+					overflow: hidden;
+					position: relative;
+				`;
+				const closeBtn = document.createElement('button');
+				closeBtn.innerHTML = '×';
+				closeBtn.style.cssText = `
+					position: fixed;
+					top: 20px;
+					right: 20px;
+					background: rgba(0,0,0,0.7);
+					color: white;
+					border: none;
+					font-size: 20px;
+					cursor: pointer;
+					z-index: 2147483647;
+					width: 40px;
+					height: 40px;
+					border-radius: 50%;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+				`;
+				closeBtn.onclick = () => document.body.removeChild(modal);
+				const iframe = document.createElement('iframe');
+				iframe.style.cssText = `
+					width: 100%;
+					height: 100%;
+					border: none;
+					background: transparent;
+				`;
+				let pathIndex = 0;
+				const possiblePaths = [
+					'六爻排盘调用/十二时辰闯关 调用.html',
+					'./六爻排盘调用/十二时辰闯关 调用.html',
+					'../六爻排盘调用/十二时辰闯关 调用.html'
+				];
+				function tryLoadIframe2(){
+					if(pathIndex >= possiblePaths.length){
+						alert('无法加载十二时辰闯关，请检查文件是否存在');
+						document.body.removeChild(modal);
+						return;
+					}
+					const currentPath = possiblePaths[pathIndex];
+					console.log('尝试加载路径:', currentPath);
+					iframe.src = currentPath;
+					iframe.onerror = () => { pathIndex++; tryLoadIframe2(); };
+					iframe.onload = () => { console.log('成功加载文件:', currentPath); };
+				}
+				content.appendChild(iframe);
+				content.appendChild(closeBtn);
+				modal.appendChild(content);
+				document.body.appendChild(modal);
+				tryLoadIframe2();
+			} else if (practiceId === 'practice3') {
+				// 打开八卦闯关（iframe）- 与practice1一致的全屏透明样式
+				const modal = document.createElement('div');
+				modal.style.cssText = `
+					position: fixed;
+					top: 0;
+					left: 0;
+					width: 100%;
+					height: 100%;
+					background: transparent;
+					z-index: 10000;
+					display: flex;
+					justify-content: center;
+					align-items: center;
+				`;
+				const content = document.createElement('div');
+				content.style.cssText = `
+					background: transparent;
+					width: 100%;
+					height: 100%;
+					border: none;
+					overflow: hidden;
+					position: relative;
+				`;
+				const closeBtn = document.createElement('button');
+				closeBtn.innerHTML = '×';
+				closeBtn.style.cssText = `
+					position: fixed;
+					top: 20px;
+					right: 20px;
+					background: rgba(0,0,0,0.7);
+					color: white;
+					border: none;
+					font-size: 20px;
+					cursor: pointer;
+					z-index: 10001;
+					width: 40px;
+					height: 40px;
+					border-radius: 50%;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+				`;
+				closeBtn.onclick = () => document.body.removeChild(modal);
+				const iframe = document.createElement('iframe');
+				iframe.style.cssText = `
+					width: 100%;
+					height: 100%;
+					border: none;
+					background: transparent;
+				`;
+				let pathIndex = 0;
+				const possiblePaths = [
+					'六爻排盘调用/八卦闯关 调用.html',
+					'./六爻排盘调用/八卦闯关 调用.html',
+					'../六爻排盘调用/八卦闯关 调用.html'
+				];
+				function tryLoadIframe3(){
+					if(pathIndex >= possiblePaths.length){
+						alert('无法加载八卦闯关，请检查文件是否存在');
+						document.body.removeChild(modal);
+						return;
+					}
+					const currentPath = possiblePaths[pathIndex];
+					console.log('尝试加载路径:', currentPath);
+					iframe.src = currentPath;
+					iframe.onerror = () => { pathIndex++; tryLoadIframe3(); };
+					iframe.onload = () => { console.log('成功加载文件:', currentPath); };
+				}
+				content.appendChild(iframe);
+				content.appendChild(closeBtn);
+				modal.appendChild(content);
+				document.body.appendChild(modal);
+				tryLoadIframe3();
 			} else {
 				// 其他练习显示敬请期待
 				alert('练习功能即将开放，敬请期待！');
