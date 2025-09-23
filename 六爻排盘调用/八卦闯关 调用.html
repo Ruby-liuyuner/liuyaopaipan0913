@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>八卦闯关</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 400:800 比例容器 */
+        .frame {
+            width: 400px;
+            height: 800px;
+            background: #f5f5f5;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            color: #fff;
+            padding: 16px 20px;
+            text-align: center;
+        }
+
+        .header h1 { margin: 0; font-size: 20px; }
+
+        .content { padding: 16px; flex: 1; overflow: auto; }
+
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 2px solid #666;
+            padding: 12px 14px;
+        }
+
+        .tip { color: #555; font-size: 12px; line-height: 1.7; text-align: center; }
+
+        .actions { margin-top: 14px; display: flex; gap: 10px; justify-content: center; }
+
+        .btn {
+            padding: 8px 14px;
+            border: 0;
+            border-radius: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: 2px solid #333;
+        }
+        .btn-primary { background: #333; color: #fff; }
+        .btn-secondary { background: #666; color: #fff; border-color: #666; }
+        .btn:hover { background: #555; color: #fff; }
+
+        .hidden { display: none; }
+
+        /* 闯关区域 */
+        .quiz { display: flex; flex-direction: column; gap: 12px; }
+        .question { background: #f0f0f0; border: 2px solid #666; border-radius: 10px; padding: 12px; color: #333; font-weight: bold; text-align: center; }
+        .options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .option-btn { padding: 10px 12px; border: 2px solid #666; border-radius: 10px; background: #fff; color: #333; cursor: pointer; transition: all 0.2s ease; text-align: center; font-size: 14px; }
+        .option-btn:hover { background: #f0f0f0; border-color: #333; transform: translateY(-1px); }
+        .option-btn.correct { background: #28a745; border-color: #28a745; color: #fff; }
+        .option-btn.incorrect { background: #dc3545; border-color: #dc3545; color: #fff; }
+
+        .glyph { font-size: 22px; line-height: 1; display: inline-block; }
+
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .stat { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px; text-align: center; }
+        .stat .value { font-size: 18px; font-weight: bold; color: #333; }
+        .stat .label { font-size: 12px; color: #666; }
+
+        .result { text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; }
+        .result.ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result.bad { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+    <script>
+        // 八卦数据
+        const BAGUA = [
+            { name: '乾卦', num: 1, wuxing: '金', natural: '天', direction: '西北', identity: '父亲', imagery: '稳健', pattern: '阳阳阳', symbol: '☰' },
+            { name: '坤卦', num: 8, wuxing: '土', natural: '地', direction: '西南', identity: '母亲', imagery: '包容', pattern: '阴阴阴', symbol: '☷' },
+            { name: '坎卦', num: 6, wuxing: '水', natural: '水', direction: '北', identity: '中男', imagery: '陷入', pattern: '阴阳阴', symbol: '☵' },
+            { name: '离卦', num: 3, wuxing: '火', natural: '火', direction: '南', identity: '中女', imagery: '热情', pattern: '阳阴阳', symbol: '☲' },
+            { name: '兑卦', num: 2, wuxing: '金', natural: '泽', direction: '西', identity: '少女', imagery: '喜悦', pattern: '阳阳阴', symbol: '☱' },
+            { name: '艮卦', num: 7, wuxing: '土', natural: '山', direction: '东北', identity: '少男', imagery: '停止', pattern: '阴阴阳', symbol: '☶' },
+            { name: '巽卦', num: 5, wuxing: '木', natural: '风', direction: '东南', identity: '长女', imagery: '进入', pattern: '阴阳阳', symbol: '☴' },
+            { name: '震卦', num: 4, wuxing: '木', natural: '雷', direction: '东', identity: '长男', imagery: '震动', pattern: '阳阴阴', symbol: '☳' }
+        ];
+
+        const TYPES = [
+            'name->num',
+            'name->wuxing',
+            'name->direction',
+            'name->natural',
+            'name->identity',
+            'name->imagery',
+            'name->symbol'
+        ];
+
+        let total = 0;
+        let wrong = 0;
+        let streak = 0; // 连续答对
+
+        function byId(id){ return document.getElementById(id); }
+
+        // 已不再使用自绘符号，改用八卦 unicode 符号
+
+        function startQuiz(){
+            total = 0; wrong = 0; streak = 0;
+            updateStats();
+            byId('view-intro').classList.add('hidden');
+            byId('view-quiz').classList.remove('hidden');
+            byId('result').className = 'result hidden';
+            nextQuestion();
+        }
+
+        function resetAndShowIntro(){
+            total = 0; wrong = 0; streak = 0;
+            updateStats();
+            byId('question').textContent = '';
+            byId('options').innerHTML = '';
+            byId('result').className = 'result hidden';
+            byId('view-quiz').classList.add('hidden');
+            byId('view-intro').classList.remove('hidden');
+        }
+
+        function nextQuestion(){
+            const type = TYPES[Math.floor(Math.random()*TYPES.length)];
+            const item = BAGUA[Math.floor(Math.random()*BAGUA.length)];
+            renderQuestion(type, item);
+        }
+
+        function renderQuestion(type, item){
+            const q = byId('question');
+            const opt = byId('options');
+            opt.innerHTML = '';
+
+            let correct;
+            let options = [];
+
+            if(type === 'name->num'){
+                q.textContent = `请选择${item.name}对应的数字`;
+                correct = String(item.num);
+                const pool = BAGUA.map(x=>x.num).filter(n=>n!==item.num);
+                options = shuffle(unique([String(item.num), ...pickRandom(pool, 3).map(String)]));
+            } else if(type === 'name->wuxing'){
+                q.textContent = `请选择${item.name}对应的五行`;
+                correct = item.wuxing;
+                const pool = BAGUA.map(x=>x.wuxing).filter(v=>v!==item.wuxing);
+                options = shuffle(unique([item.wuxing, ...pickRandom(pool, 3)]));
+            } else if(type === 'name->direction'){
+                q.textContent = `请选择${item.name}对应的方位`;
+                correct = item.direction;
+                const pool = BAGUA.map(x=>x.direction).filter(v=>v!==item.direction);
+                options = shuffle(unique([item.direction, ...pickRandom(pool, 3)]));
+            } else if(type === 'name->natural'){
+                q.textContent = `请选择${item.name}对应的自然现象`;
+                correct = item.natural;
+                const pool = BAGUA.map(x=>x.natural).filter(v=>v!==item.natural);
+                options = shuffle(unique([item.natural, ...pickRandom(pool, 3)]));
+            } else if(type === 'name->identity'){
+                q.textContent = `请选择${item.name}对应的社会身份`;
+                correct = item.identity;
+                const pool = BAGUA.map(x=>x.identity).filter(v=>v!==item.identity);
+                options = shuffle(unique([item.identity, ...pickRandom(pool, 3)]));
+            } else if(type === 'name->imagery'){
+                q.textContent = `请选择${item.name}对应的意象`;
+                correct = item.imagery;
+                const pool = BAGUA.map(x=>x.imagery).filter(v=>v!==item.imagery);
+                options = shuffle(unique([item.imagery, ...pickRandom(pool, 3)]));
+            } else { // name->symbol
+                q.textContent = `请选择${item.name}对应的符号`;
+                correct = item.symbol;
+                const pool = BAGUA.map(x=>x.symbol).filter(v=>v!==item.symbol);
+                options = shuffle(unique([item.symbol, ...pickRandom(pool, 3)]));
+            }
+
+            // 渲染选项
+            options.slice(0,4).forEach(text=>{
+                const b = document.createElement('button');
+                b.className = 'option-btn';
+                if(type === 'name->symbol'){
+                    const span = document.createElement('span');
+                    span.className = 'glyph';
+                    span.textContent = text;
+                    b.appendChild(span);
+                } else {
+                    b.textContent = text;
+                }
+                b.onclick = () => choose(text, correct, type, item);
+                opt.appendChild(b);
+            });
+        }
+
+        function getLabel(type){
+            switch(type){
+                case 'name->num': return '数字';
+                case 'name->wuxing': return '五行';
+                case 'name->direction': return '方位';
+                case 'name->natural': return '自然现象';
+                case 'name->identity': return '社会身份';
+                case 'name->imagery': return '意象';
+                case 'name->symbol': return '符号';
+                default: return '';
+            }
+        }
+
+        function choose(ans, correct, type, item){
+            const buttons = Array.from(document.querySelectorAll('.option-btn'));
+            buttons.forEach(btn=>{
+                btn.disabled = true;
+                const isCorrectBtn = (type === 'name->symbol')
+                    ? (btn.querySelector('.glyph') && btn.querySelector('.glyph').textContent === String(correct))
+                    : (btn.textContent === String(correct));
+                if(isCorrectBtn){ btn.classList.add('correct'); }
+            });
+
+            let isCorrect = false;
+            if(type === 'name->symbol'){
+                isCorrect = (String(ans) === String(correct));
+            } else {
+                isCorrect = (String(ans) === String(correct));
+            }
+
+            total++;
+            if(isCorrect){
+                streak++;
+                showResult(true);
+                if(streak >= 100){ showVictory(); return; }
+                setTimeout(()=>{ nextQuestion(); }, 800);
+            } else {
+                wrong++;
+                streak = 0;
+                const r = byId('result');
+                r.className = 'result bad';
+                const label = getLabel(type);
+                r.innerHTML = `错误！已从1重新开始计数<br>${item.name}对应的${label}为${String(correct)}`;
+                setTimeout(()=>{ nextQuestion(); }, 1200);
+            }
+            updateStats();
+
+            // 标记错误按钮
+            if(!isCorrect){
+                buttons.forEach(btn=>{
+                    if(type !== 'name->symbol' && btn.textContent === String(ans)){
+                        btn.classList.add('incorrect');
+                    }
+                    if(type === 'name->symbol'){
+                        const s = btn.querySelector('.glyph');
+                        if(s && s.textContent === String(ans)){
+                            btn.classList.add('incorrect');
+                        }
+                    }
+                });
+            }
+        }
+
+        function showResult(ok){
+            const r = byId('result');
+            r.className = 'result ' + (ok ? 'ok' : 'bad');
+            r.textContent = ok ? '正确！' : '错误！已从1重新开始计数';
+        }
+
+        function showVictory(){
+            const r = byId('result');
+            r.className = 'result ok';
+            r.textContent = '🎉 恭喜通关！已连续答对 100/100';
+        }
+
+        function updateStats(){
+            byId('total').textContent = total;
+            byId('wrong').textContent = wrong;
+            byId('streak').textContent = `${streak}/100`;
+        }
+
+        function shuffle(arr){ return arr.sort(()=>Math.random()-0.5); }
+        function unique(arr){ return Array.from(new Set(arr)); }
+        function pickRandom(list, n){
+            const a = [...list];
+            const out = [];
+            while(out.length < n && a.length){
+                const i = Math.floor(Math.random()*a.length);
+                out.push(a.splice(i,1)[0]);
+            }
+            return out;
+        }
+    </script>
+</head>
+<body>
+    <div class="frame">
+        <div class="header"><h1>八卦闯关</h1></div>
+        <div class="content">
+            <!-- 默认页（改为隐藏，直接进入闯关） -->
+            <div id="view-intro" class="card hidden">
+                <div class="tip">当连续答对100题后则可通关<br>答错系统将自动从1开始计数</div>
+                <div class="actions">
+                    <button class="btn btn-secondary" onclick="history.back()">返回</button>
+                </div>
+            </div>
+
+            <!-- 闯关页 -->
+            <div id="view-quiz">
+                <div class="quiz">
+                    <div class="tip">当连续答对100题后则可通关<br>答错系统将自动从1开始计数</div>
+                    <div id="question" class="question"></div>
+                    <div id="options" class="options"></div>
+                    <div id="result" class="result hidden"></div>
+                    <div class="stats">
+                        <div class="stat"><div id="total" class="value">0</div><div class="label">已练习</div></div>
+                        <div class="stat"><div id="wrong" class="value">0</div><div class="label">答错</div></div>
+                        <div class="stat"><div id="streak" class="value">0/100</div><div class="label">已连续答对</div></div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-secondary" onclick="history.back()">返回</button>
+                    </div>
+                    <div class="tip" style="margin-top: -2px;">注：返回上一页面本次闯关数据将会清零</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    // 进入页面即开始闯关
+    window.onload = startQuiz;
+</script>
+</html>
+
+

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>十二时辰闯关</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 400:800 比例容器（宽:高 = 1:2） */
+        .frame {
+            width: 400px;
+            height: 800px;
+            background: #f5f5f5;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            color: #fff;
+            padding: 16px 20px;
+            text-align: center;
+        }
+
+        .header h1 { margin: 0; font-size: 20px; }
+
+        .content {
+            padding: 16px;
+            flex: 1;
+            overflow: auto;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 2px solid #666;
+            padding: 16px;
+        }
+
+        .card h2 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .desc { color: #555; font-size: 12px; line-height: 1.7; }
+
+        .table-wrap { margin-top: 12px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: #f9f9f9;
+            border: 2px solid #666;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        .actions { margin-top: 14px; display: flex; justify-content: center; }
+
+        .btn {
+            padding: 10px 18px;
+            border: 0;
+            border-radius: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-primary {
+            background: #333;
+            color: #fff;
+            border: 2px solid #333;
+        }
+
+        .btn-primary:hover { background: #555; }
+
+        /* 闯关视图 */
+        .hidden { display: none; }
+
+        .quiz {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .quiz .question {
+            background: #f0f0f0;
+            border: 2px solid #666;
+            border-radius: 10px;
+            padding: 12px;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .option-btn {
+            padding: 10px 12px;
+            border: 2px solid #666;
+            border-radius: 10px;
+            background: #fff;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .option-btn:hover { background: #f0f0f0; border-color: #333; transform: translateY(-1px); }
+        .option-btn.correct { background: #28a745; border-color: #28a745; color: #fff; }
+        .option-btn.incorrect { background: #dc3545; border-color: #dc3545; color: #fff; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .stat {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .stat .value { font-size: 18px; font-weight: bold; color: #333; }
+        .stat .label { font-size: 12px; color: #666; }
+
+        .result {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .result.ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result.bad { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+    <script>
+        const DATA = [
+            { name: '子时', time: '23:00–01:00', num: 1 },
+            { name: '丑时', time: '01:00–03:00', num: 2 },
+            { name: '寅时', time: '03:00–05:00', num: 3 },
+            { name: '卯时', time: '05:00–07:00', num: 4 },
+            { name: '辰时', time: '07:00–09:00', num: 5 },
+            { name: '巳时', time: '09:00–11:00', num: 6 },
+            { name: '午时', time: '11:00–13:00', num: 7 },
+            { name: '未时', time: '13:00–15:00', num: 8 },
+            { name: '申时', time: '15:00–17:00', num: 9 },
+            { name: '酉时', time: '17:00–19:00', num: 10 },
+            { name: '戌时', time: '19:00–21:00', num: 11 },
+            { name: '亥时', time: '21:00–23:00', num: 12 }
+        ];
+
+        const TYPES = ['time->name', 'name->num', 'name->time'];
+
+        let total = 0;
+        let wrong = 0;
+        let streak = 0; // 连续答对
+
+        function byId(id){ return document.getElementById(id); }
+
+        function showIntro(){
+            // 清零数据并重置界面
+            total = 0; wrong = 0; streak = 0;
+            updateStats();
+            byId('question').textContent = '';
+            byId('options').innerHTML = '';
+            byId('result').className = 'result hidden';
+            byId('view-intro').classList.remove('hidden');
+            byId('view-quiz').classList.add('hidden');
+        }
+
+        function startQuiz(){
+            total = 0; wrong = 0; streak = 0;
+            updateStats();
+            byId('result').className = 'result hidden';
+            byId('view-intro').classList.add('hidden');
+            byId('view-quiz').classList.remove('hidden');
+            nextQuestion();
+        }
+
+        function nextQuestion(){
+            const type = TYPES[Math.floor(Math.random()*TYPES.length)];
+            const item = DATA[Math.floor(Math.random()*DATA.length)];
+            renderQuestion(type, item);
+        }
+
+        function renderQuestion(type, item){
+            const q = byId('question');
+            const opt = byId('options');
+            opt.innerHTML = '';
+
+            let correctText = '';
+            let options = [];
+
+            if(type === 'time->name'){
+                q.textContent = `请选择${item.time}对应的时辰`;
+                correctText = item.name;
+                options = shuffle(unique([item.name, ...pickRandom(DATA, 3).map(x=>x.name)]));
+            } else if(type === 'name->num'){
+                q.textContent = `请选择${item.name}对应的数字`;
+                correctText = String(item.num);
+                const nums = DATA.map(x=>x.num);
+                options = shuffle(unique([String(item.num), ...pickRandom(nums.filter(n=>n!==item.num), 3).map(String)]));
+            } else { // name->time
+                q.textContent = `请选择${item.name}对应的时间段`;
+                correctText = item.time;
+                options = shuffle(unique([item.time, ...pickRandom(DATA.filter(x=>x.name!==item.name), 3).map(x=>x.time)]));
+            }
+
+            // 保证选项数量为4
+            while(options.length < 4){
+                const extra = TYPES.indexOf(type) === 1 ? String(randomFrom(DATA).num) : (TYPES.indexOf(type) === 0 ? randomFrom(DATA).name : randomFrom(DATA).time);
+                if(!options.includes(extra)) options.push(extra);
+            }
+            options = options.slice(0,4);
+
+            options.forEach(text=>{
+                const b = document.createElement('button');
+                b.className = 'option-btn';
+                b.textContent = text;
+                b.onclick = () => choose(text, correctText, type, item);
+                opt.appendChild(b);
+            });
+        }
+
+        function getLabel(type){
+            if(type === 'time->name') return '时辰';
+            if(type === 'name->num') return '数字';
+            if(type === 'name->time') return '时间段';
+            return '';
+        }
+
+        function choose(ans, correct, type, item){
+            const buttons = Array.from(document.querySelectorAll('.option-btn'));
+            buttons.forEach(btn=>{
+                btn.disabled = true;
+                if(btn.textContent === correct){ btn.classList.add('correct'); }
+                if(btn.textContent === ans && ans !== correct){ btn.classList.add('incorrect'); }
+            });
+
+            total++;
+            if(ans === correct){
+                streak++;
+                showResult(true);
+                if(streak >= 49){
+                    showVictory();
+                    return;
+                }
+                setTimeout(()=>{ nextQuestion(); }, 800);
+            }else{
+                wrong++;
+                streak = 0; // 打错后从0计，下一题答对即为1
+                const r = byId('result');
+                r.className = 'result bad';
+                const label = getLabel(type);
+                let subject = '';
+                let right = '';
+                if(type === 'time->name') { subject = item.time; right = item.name; }
+                if(type === 'name->num') { subject = item.name; right = String(item.num); }
+                if(type === 'name->time') { subject = item.name; right = item.time; }
+                r.innerHTML = `错误！已从1重新开始计数<br>${subject}对应的${label}为${right}`;
+                setTimeout(()=>{ nextQuestion(); }, 1200);
+            }
+            updateStats();
+        }
+
+        function showResult(ok){
+            const r = byId('result');
+            r.className = 'result ' + (ok ? 'ok' : 'bad');
+            r.textContent = ok ? '正确！' : '错误！已从1重新开始计数';
+        }
+
+        function showVictory(){
+            const r = byId('result');
+            r.className = 'result ok';
+            r.textContent = '🎉 恭喜通关！已连续答对 49/49';
+        }
+
+        function updateStats(){
+            byId('total').textContent = total;
+            byId('wrong').textContent = wrong;
+            byId('streak').textContent = `${streak}/49`;
+        }
+
+        function shuffle(arr){ return arr.sort(()=>Math.random()-0.5); }
+        function unique(arr){ return Array.from(new Set(arr)); }
+        function pickRandom(list, n){
+            const a = [...list];
+            const out = [];
+            while(out.length < n && a.length){
+                const i = Math.floor(Math.random()*a.length);
+                out.push(a.splice(i,1)[0]);
+            }
+            return out;
+        }
+        function randomFrom(list){ return list[Math.floor(Math.random()*list.length)]; }
+    </script>
+</head>
+<body>
+    <div class="frame">
+        <div class="header"><h1>十二时辰闯关</h1></div>
+        <div class="content">
+            <!-- 说明视图 -->
+            <div id="view-intro" class="card">
+                <h2>学习说明</h2>
+                <div class="desc">
+                    以下为十二时辰对应的时间和数字，记忆完成后点击下方【开始闯关】按钮即可开始通关联系，当连续答对49题后则可通关，答错系统自动从1开始计数
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <tbody>
+                            <tr><td>子时（23:00–01:00）</td><td>1</td></tr>
+                            <tr><td>丑时（01:00–03:00）</td><td>2</td></tr>
+                            <tr><td>寅时（03:00–05:00）</td><td>3</td></tr>
+                            <tr><td>卯时（05:00–07:00）</td><td>4</td></tr>
+                            <tr><td>辰时（07:00–09:00）</td><td>5</td></tr>
+                            <tr><td>巳时（09:00–11:00）</td><td>6</td></tr>
+                            <tr><td>午时（11:00–13:00）</td><td>7</td></tr>
+                            <tr><td>未时（13:00–15:00）</td><td>8</td></tr>
+                            <tr><td>申时（15:00–17:00）</td><td>9</td></tr>
+                            <tr><td>酉时（17:00–19:00）</td><td>10</td></tr>
+                            <tr><td>戌时（19:00–21:00）</td><td>11</td></tr>
+                            <tr><td>亥时（21:00–23:00）</td><td>12</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="startQuiz()">开始闯关</button>
+                </div>
+            </div>
+
+            <!-- 闯关视图 -->
+            <div id="view-quiz" class="hidden">
+                <div class="quiz">
+                    <div id="question" class="question"></div>
+                    <div id="options" class="options"></div>
+                    <div id="result" class="result hidden"></div>
+                    <div class="stats">
+                        <div class="stat"><div id="total" class="value">0</div><div class="label">已练习</div></div>
+                        <div class="stat"><div id="wrong" class="value">0</div><div class="label">答错</div></div>
+                        <div class="stat"><div id="streak" class="value">0/49</div><div class="label">已连续答对</div></div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="showIntro()">返回</button>
+                    </div>
+                    <div class="desc" style="text-align:center; margin-top: -4px;">注：返回上一页面本次闯关数据将会清零</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+
