@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习视频合集</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .title { text-align: center; margin: 10px 0 20px 0; font-size: 20px; }
+        .video-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 2px solid #666;
+            padding: 18px;
+            margin-bottom: 18px;
+            color: #333;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+        .video-title { text-align: center; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; }
+        .ratio-box { position: relative; width: 100%; height: 0; padding-bottom: 56.25%; background: #f5f5f5; border-radius: 8px; overflow: hidden; }
+        .frame { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .fallback { display:flex; align-items:center; justify-content:center; width:100%; height:100%; color:#999; }
+        .note { display:none; }
+    </style>
+    <script>
+        // 优先B站，其次YouTube（embed），按序尝试，失败自动切换
+        const videos = [
+            {
+                title: '六爻排盘全流程',
+                sources: [
+                    'https://player.bilibili.com/player.html?bvid=BV1qDe2zeEoz&autoplay=0',
+                    'https://www.youtube.com/embed/-S-3SSg4dPg'
+                ]
+            },
+            {
+                title: '六爻起卦1/3：大衍之术',
+                sources: [
+                    'https://player.bilibili.com/player.html?bvid=BV1goWgztEQw&autoplay=0',
+                    'https://www.youtube.com/embed/mr1BI3pDbLI'
+                ]
+            },
+            {
+                title: '六爻起卦2/3：铜钱起卦',
+                sources: [
+                    'https://player.bilibili.com/player.html?bvid=BV1fxJRzQE5f&autoplay=0',
+                    'https://www.youtube.com/embed/4ElPF5a8odM'
+                ]
+            },
+            {
+                title: '六爻起卦3/3：梅花易数起卦',
+                sources: [
+                    'https://player.bilibili.com/player.html?bvid=BV1WRnPz9E5h&autoplay=0',
+                    'https://www.youtube.com/embed/hfMML1UV1wo'
+                ]
+            }
+        ];
+
+        function createVideoCard({ title, sources }) {
+            const card = document.createElement('div');
+            card.className = 'video-card';
+
+            const h4 = document.createElement('h4');
+            h4.className = 'video-title';
+            h4.textContent = title;
+
+            const box = document.createElement('div');
+            box.className = 'ratio-box';
+
+            const frame = document.createElement('div');
+            frame.className = 'frame';
+            box.appendChild(frame);
+
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'width:100%;height:100%;border:none;background:transparent;';
+            iframe.setAttribute('allowfullscreen', 'true');
+            iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+            iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+
+            let idx = 0;
+            function tryNext() {
+                if (idx >= sources.length) {
+                    frame.innerHTML = '<div class="fallback">视频加载失败，请稍后重试</div>';
+                    return;
+                }
+                const url = sources[idx++];
+                iframe.src = url;
+            }
+
+            iframe.onerror = () => tryNext();
+            // onload 不切换，认为成功
+
+            frame.appendChild(iframe);
+            tryNext();
+
+            card.appendChild(h4);
+            card.appendChild(box);
+            return card;
+        }
+
+        function init() {
+            const container = document.getElementById('video-list');
+            videos.forEach(v => container.appendChild(createVideoCard(v)));
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="title">学习视频合集</div>
+        <div id="video-list"></div>
+        <div class="note"></div>
+    </div>
+</body>
+</html>
+
+
