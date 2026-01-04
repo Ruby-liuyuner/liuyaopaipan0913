@@ -5724,7 +5724,7 @@
 			// 本卦部分
 			html += "<div class='ben-gua-container'>";
 			html += "<div class='gua-header' style='text-align: center; margin-bottom: 10px;'>";
-			html += "<span class='gua-label'>本卦·</span><span class='gua-name'>" + guaName + "</span><span class='gua-label'>第" + toChineseNum(guaIndex) + "</span>";
+			html += "<span class='gua-label'>本卦·</span><span class='gua-name'>" + guaName + "</span><span class='gua-label'>第" + toChineseNum(guaIndex) + "</span><span class='speak-btn' onclick=\"speakGuaResult('" + guaName + "', '" + guaChangeName + "', '" + guaIndex + "')\" style='cursor:pointer; margin-left:8px; font-size:14px; vertical-align:middle;' title='朗读结果'>🔊</span>";
 			html += "</div>";
 			html += "<div style='font-size: 6px; color: #999; text-align: center; margin-bottom: 20px;'>" + getGuaInfo(binary) + "</div>";
 			html += "<div class='gua-section'>";
@@ -10220,6 +10220,35 @@
 			}
 		});
 		
+	</script>
+	<script>
+		// 语音朗读功能
+		function speakGuaResult(benGua, bianGua, index) {
+			if (!window.speechSynthesis) {
+				alert('您的浏览器不支持语音朗读功能');
+				return;
+			}
+			
+			// 停止当前正在播放的语音
+			window.speechSynthesis.cancel();
+			
+			let text = `排盘结果。本卦：${benGua}。`;
+			
+			// 如果有变卦且不相同
+			if (bianGua && bianGua !== '未知卦' && bianGua !== benGua) {
+				text += `变卦：${bianGua}。`;
+			}
+			
+			// 尝试获取卦辞信息 (如果存在 getGuaDescription 函数或其他数据源)
+			// 这里暂时只读卦名
+			
+			const utterance = new SpeechSynthesisUtterance(text);
+			utterance.lang = 'zh-CN';
+			utterance.rate = 0.9; // 稍慢一点更清晰
+			utterance.pitch = 1.0;
+			
+			window.speechSynthesis.speak(utterance);
+		}
 	</script>
 </body>
 </html>
