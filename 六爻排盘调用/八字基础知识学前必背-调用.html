@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>八字基础知识（学前必背）</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.7;
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            color: #e8e8e8;
+        }
+        .page { max-width: 720px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 24px;
+            font-size: 1.5em;
+        }
+        .intro {
+            color: #ddd;
+            margin-bottom: 28px;
+            font-size: 15px;
+        }
+        .section {
+            margin-bottom: 22px;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            border-left: 4px solid rgba(255,200,100,0.6);
+        }
+        .section-title { font-weight: bold; color: #f5d68a; margin-bottom: 8px; }
+        .section p { margin: 6px 0; }
+        .btn-start {
+            display: block;
+            width: 100%;
+            max-width: 280px;
+            margin: 32px auto 20px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a1a1a;
+            background: linear-gradient(135deg, #f5d68a 0%, #e8c56a 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+        }
+        .btn-start:hover { opacity: 0.95; transform: translateY(-1px); }
+
+        /* 练习页 */
+        .practice-page { display: none; }
+        .practice-page.active { display: block; }
+        .reading-page.hidden { display: none; }
+        .question-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #f5d68a;
+            text-align: center;
+        }
+        .part-block {
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            border-left: 3px solid rgba(245,214,138,0.5);
+        }
+        .part-prompt {
+            font-size: 0.95em;
+            color: #ddd;
+            margin-bottom: 10px;
+        }
+        .part-prompt .multi-hint { color: #999; font-size: 0.9em; }
+        .part-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .option-btn, .option-chip {
+            padding: 10px 16px;
+            border: 2px solid rgba(255,255,255,0.25);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            color: #e8e8e8;
+            font-size: 15px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .option-chip { user-select: none; }
+        .option-btn:hover, .option-chip:hover {
+            border-color: rgba(245,214,138,0.6);
+            background: rgba(255,255,255,0.12);
+        }
+        .option-chip.selected, .option-btn.selected { border-color: #f5d68a; background: rgba(245,214,138,0.25); color: #fff; }
+        .option-btn.correct, .option-chip.correct { border-color: #4ade80; background: rgba(74,222,128,0.2); color: #86efac; }
+        .option-btn.wrong, .option-chip.wrong { border-color: #f87171; background: rgba(248,113,113,0.2); color: #fca5a5; }
+        .option-btn:disabled, .option-chip.disabled { cursor: default; opacity: 0.85; pointer-events: none; }
+        .part-feedback { font-size: 0.9em; margin-top: 6px; min-height: 20px; }
+        .part-feedback.ok { color: #4ade80; }
+        .part-feedback.err { color: #f87171; }
+        .feedback { text-align: center; margin-bottom: 12px; min-height: 24px; font-weight: bold; }
+        .feedback.right { color: #4ade80; }
+        .feedback.error { color: #f87171; }
+        .submit-row { text-align: center; margin: 20px 0 12px; }
+        .btn-submit {
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a1a1a;
+            background: #f5d68a;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .btn-submit:hover { opacity: 0.95; }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+        .next-row { text-align: center; margin-top: 16px; }
+        .btn-next {
+            padding: 12px 28px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #1a1a1a;
+            background: #f5d68a;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .btn-next:hover { opacity: 0.95; }
+        .progress { text-align: center; color: #999; font-size: 14px; margin-bottom: 16px; }
+
+        /* 练习统计（底部，类似64卦闯关） */
+        .stats-container {
+            background: rgba(255,255,255,0.08);
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-top: 24px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .stats-title { font-size: 1em; font-weight: bold; margin-bottom: 12px; color: #f5d68a; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .stat-item {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .stat-value { font-size: 1.3em; font-weight: bold; color: #e8e8e8; }
+        .stat-label { font-size: 0.85em; color: #999; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- 阅读页 -->
+        <div id="reading-page" class="reading-page">
+            <h1>八字基础知识（学前必背）</h1>
+            <p class="intro">本练习为八字必背内容，需背诵得滚瓜烂熟后，再正式开启八字学习，内容如下：</p>
+
+            <div class="section">
+                <div class="section-title">1. 五行生克</div>
+                <p>金生水，水生木，木生火，火生土，土生金。</p>
+                <p>金克木，木克土，土克水，水克火，火克金。</p>
+            </div>
+            <div class="section">
+                <div class="section-title">2. 十天干</div>
+                <p>甲（jiǎ）、乙（yǐ）、丙（bǐng）、丁（dīng）、戊（wù）、己（jǐ）、庚（gēng）、辛（xīn）、壬（rén）、癸（guǐ）</p>
+            </div>
+            <div class="section">
+                <div class="section-title">3. 十二地支</div>
+                <p>子（zǐ）、丑（chǒu）、寅（yín）、卯（mǎo）、辰（chén）、巳（sì）、午（wǔ）、未（wèi）、申（shēn）、酉（yǒu）、戌（xū）、亥（hài）</p>
+            </div>
+            <div class="section">
+                <div class="section-title">4. 十干禄绝</div>
+                <p>甲禄在寅绝在申，乙禄在卯绝在酉，丙禄在巳绝在亥，丁禄在午绝在子，戊禄在巳绝在亥，己禄在午绝在子，庚禄在申绝在寅，辛禄在酉绝在卯，壬禄在亥绝在巳，癸禄在子绝在午。</p>
+            </div>
+            <div class="section">
+                <div class="section-title">5. 刑冲合会害</div>
+                <p>天干四冲：甲庚冲，乙辛冲，丙壬冲，丁癸冲。</p>
+                <p>天干五合：甲己合化土，乙庚合化金，丙辛合化水，丁壬合化木，戊癸合化火。</p>
+                <p>地支三合：寅午戌三合火局，申子辰三合水局，巳酉丑三合金局，亥卯未三合木局。</p>
+                <p>地支三会：寅卯辰三会东方木，申酉戌三会西方金，巳午未三会南方火，亥子丑三会北方水。</p>
+                <p>地支六合：子丑合，寅亥合，卯戌合，辰酉合，巳申合，午未合。</p>
+                <p>地支六冲：子午冲，丑未冲，寅申冲，卯酉冲，辰戌冲，巳亥冲。</p>
+                <p>地支三刑：寅巳申，丑戌未，子卯，辰酉午亥自刑。</p>
+                <p>地支六害：子未害，丑午害，寅巳害，申亥害，卯辰害，酉戌害。</p>
+            </div>
+            <div class="section">
+                <div class="section-title">6. 十神生克</div>
+                <p>比劫生食伤，食伤生财，财生官杀，官杀生印，印生比劫。</p>
+                <p>比劫克财，财克印，印克食伤，食伤克官杀，官杀克比劫。</p>
+            </div>
+
+            <button class="btn-start" id="btn-start">开始练习</button>
+        </div>
+
+        <!-- 练习页 -->
+        <div id="practice-page" class="practice-page">
+            <p class="progress" id="progress">第 1 题</p>
+            <div class="question-title" id="question-text"></div>
+            <div id="parts-container"></div>
+            <div class="feedback" id="feedback"></div>
+            <div class="submit-row">
+                <button class="btn-submit" id="btn-submit">提交</button>
+            </div>
+            <div class="next-row">
+                <button class="btn-next" id="btn-next" style="display:none;">下一题</button>
+            </div>
+            <!-- 练习统计 -->
+            <div class="stats-container" id="practice-stats">
+                <div class="stats-title">练习统计</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-questions">0</div>
+                        <div class="stat-label">已答题</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="wrong-answers">0</div>
+                        <div class="stat-label">答错</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="accuracy-rate">0%</div>
+                        <div class="stat-label">正确率</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        var DIZHI = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+        var WUXING = ['金','水','木','火','土'];
+        var FANGWEI = ['东方','西方','南方','北方'];
+        var optionSets = {
+            wuxing: WUXING,
+            tiangan: ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'],
+            dizhi: DIZHI,
+            shishen: ['比劫','食伤','财','官杀','印'],
+            heju: ['火局','水局','金局','木局'],
+            huiju: ['东方木','西方金','南方火','北方水']
+        };
+
+        function shuffle(arr) {
+            var a = arr.slice();
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var t = a[i]; a[i] = a[j]; a[j] = t;
+            }
+            return a;
+        }
+        function sameSet(a, b) {
+            if (a.length !== b.length) return false;
+            var sa = a.slice().sort().join(',');
+            var sb = b.slice().sort().join(',');
+            return sa === sb;
+        }
+
+        // 多空题格式：{ title: "题干", parts: [ { prompt, correct: [], options: [], multi } ] }
+        // 三会：寅卯辰东方木、申酉戌西方金、巳午未南方火、亥子丑北方水。每题三空：另两地支(多选)、方位(单选)、五行(单选)
+        var sanhui = [
+            { given: '寅', rest: ['卯','辰'], fangwei: '东方', wuxing: '木' },
+            { given: '申', rest: ['酉','戌'], fangwei: '西方', wuxing: '金' },
+            { given: '巳', rest: ['午','未'], fangwei: '南方', wuxing: '火' },
+            { given: '亥', rest: ['子','丑'], fangwei: '北方', wuxing: '水' }
+        ];
+        var sanhuiQuestions = [];
+        sanhui.forEach(function(s) {
+            var restOptions = s.rest.slice();
+            DIZHI.forEach(function(d) {
+                if (d !== s.given && restOptions.indexOf(d) === -1) restOptions.push(d);
+            });
+            restOptions = shuffle(restOptions).slice(0, 6);
+            s.rest.forEach(function(r) { if (restOptions.indexOf(r) === -1) restOptions.push(r); });
+            restOptions = shuffle(restOptions);
+            sanhuiQuestions.push({
+                title: '地支三会，已知「' + s.given + '」',
+                parts: [
+                    { prompt: '另两地支是？', correct: s.rest.slice(), options: restOptions, multi: true },
+                    { prompt: '方位是？', correct: [s.fangwei], options: FANGWEI.slice(), multi: false },
+                    { prompt: '五行属？', correct: [s.wuxing], options: WUXING.slice(), multi: false }
+                ]
+            });
+        });
+
+        // 三合：只问另两地支(多选) + 合为何局(单选)，不问五行（局名已含五行，避免重复）
+        var sanhe = [
+            { given: '寅', rest: ['午','戌'], ju: '火局' },
+            { given: '申', rest: ['子','辰'], ju: '水局' },
+            { given: '巳', rest: ['酉','丑'], ju: '金局' },
+            { given: '亥', rest: ['卯','未'], ju: '木局' }
+        ];
+        var sanheQuestions = [];
+        sanhe.forEach(function(s) {
+            var restOptions = s.rest.slice();
+            DIZHI.forEach(function(d) {
+                if (d !== s.given && restOptions.indexOf(d) === -1) restOptions.push(d);
+            });
+            restOptions = shuffle(restOptions).slice(0, 6);
+            s.rest.forEach(function(r) { if (restOptions.indexOf(r) === -1) restOptions.push(r); });
+            restOptions = shuffle(restOptions);
+            sanheQuestions.push({
+                title: '地支三合，已知「' + s.given + '」',
+                parts: [
+                    { prompt: '另两地支是？', correct: s.rest.slice(), options: restOptions, multi: true },
+                    { prompt: '合为何局？', correct: [s.ju], options: ['火局','水局','金局','木局'], multi: false }
+                ]
+            });
+        });
+        sanhe.forEach(function(s) {
+            s.rest.forEach(function(g) {
+                var other = [s.given].concat(s.rest.filter(function(x) { return x !== g; }));
+                var restOptions = other.slice();
+                DIZHI.forEach(function(d) {
+                    if (d !== g && restOptions.indexOf(d) === -1) restOptions.push(d);
+                });
+                restOptions = shuffle(restOptions).slice(0, 6);
+                other.forEach(function(r) { if (restOptions.indexOf(r) === -1) restOptions.push(r); });
+                restOptions = shuffle(restOptions);
+                sanheQuestions.push({
+                    title: '地支三合，已知「' + g + '」',
+                    parts: [
+                        { prompt: '另两地支是？', correct: other.slice(), options: restOptions, multi: true },
+                        { prompt: '合为何局？', correct: [s.ju], options: ['火局','水局','金局','木局'], multi: false }
+                    ]
+                });
+            });
+        });
+
+        // 单空题转多空格式（一题一个空）
+        function single(title, correct, type) {
+            var set = optionSets[type] || optionSets.wuxing;
+            var rest = set.filter(function(x) { return x !== correct; });
+            rest = shuffle(rest).slice(0, 3);
+            var opts = shuffle(rest.concat(correct));
+            return { title: title, parts: [{ prompt: '请选择', correct: [correct], options: opts, multi: false }] };
+        }
+        var gan = optionSets.tiangan;
+        var lu = ['寅','卯','巳','午','巳','午','申','酉','亥','子'];
+        var jue = ['申','酉','亥','子','亥','子','寅','卯','巳','午'];
+
+        var wuxingQuestions = [
+            single('金生？', '水', 'wuxing'), single('水生？', '木', 'wuxing'), single('木生？', '火', 'wuxing'),
+            single('火生？', '土', 'wuxing'), single('土生？', '金', 'wuxing'),
+            single('金克？', '木', 'wuxing'), single('木克？', '土', 'wuxing'), single('土克？', '水', 'wuxing'),
+            single('水克？', '火', 'wuxing'), single('火克？', '金', 'wuxing')
+        ];
+        var luguanQuestions = [];
+        for (var g = 0; g < 10; g++) {
+            luguanQuestions.push(single('天干「' + gan[g] + '」禄在？', lu[g], 'dizhi'));
+            luguanQuestions.push(single('天干「' + gan[g] + '」绝在？', jue[g], 'dizhi'));
+        }
+        var chongheQuestions = [
+            single('天干甲与谁冲？', '庚', 'tiangan'), single('天干乙与谁冲？', '辛', 'tiangan'),
+            single('天干丙与谁冲？', '壬', 'tiangan'), single('天干丁与谁冲？', '癸', 'tiangan'),
+            single('天干庚与谁冲？', '甲', 'tiangan'), single('天干辛与谁冲？', '乙', 'tiangan'),
+            single('天干壬与谁冲？', '丙', 'tiangan'), single('天干癸与谁冲？', '丁', 'tiangan'),
+            single('甲己合化？', '土', 'wuxing'), single('乙庚合化？', '金', 'wuxing'),
+            single('丙辛合化？', '水', 'wuxing'), single('丁壬合化？', '木', 'wuxing'), single('戊癸合化？', '火', 'wuxing')
+        ];
+        var liuhe = [['子','丑'],['寅','亥'],['卯','戌'],['辰','酉'],['巳','申'],['午','未']];
+        var liuchong = [['子','午'],['丑','未'],['寅','申'],['卯','酉'],['辰','戌'],['巳','亥']];
+        var liuhai = [['子','未'],['丑','午'],['寅','巳'],['申','亥'],['卯','辰'],['酉','戌']];
+        for (var h = 0; h < 6; h++) {
+            chongheQuestions.push(single('地支「' + liuhe[h][0] + '」与谁六合？', liuhe[h][1], 'dizhi'));
+            chongheQuestions.push(single('地支「' + liuhe[h][1] + '」与谁六合？', liuhe[h][0], 'dizhi'));
+            chongheQuestions.push(single('地支「' + liuchong[h][0] + '」与谁六冲？', liuchong[h][1], 'dizhi'));
+            chongheQuestions.push(single('地支「' + liuchong[h][1] + '」与谁六冲？', liuchong[h][0], 'dizhi'));
+            chongheQuestions.push(single('地支「' + liuhai[h][0] + '」与谁六害？', liuhai[h][1], 'dizhi'));
+            chongheQuestions.push(single('地支「' + liuhai[h][1] + '」与谁六害？', liuhai[h][0], 'dizhi'));
+        }
+        var shenkeQuestions = [
+            single('比劫生？', '食伤', 'shishen'), single('食伤生？', '财', 'shishen'), single('财生？', '官杀', 'shishen'),
+            single('官杀生？', '印', 'shishen'), single('印生？', '比劫', 'shishen'),
+            single('比劫克？', '财', 'shishen'), single('财克？', '印', 'shishen'), single('印克？', '食伤', 'shishen'),
+            single('食伤克？', '官杀', 'shishen'), single('官杀克？', '比劫', 'shishen')
+        ];
+
+        var allQuestions = shuffle(wuxingQuestions.concat(sanhuiQuestions, sanheQuestions, luguanQuestions, chongheQuestions, shenkeQuestions));
+        var currentIndex = 0;
+        var answered = false;
+        var stats = { total: 0, correct: 0 };
+
+        function updateStats() {
+            document.getElementById('total-questions').textContent = stats.total;
+            document.getElementById('wrong-answers').textContent = stats.total - stats.correct;
+            document.getElementById('accuracy-rate').textContent = stats.total ? (Math.round(stats.correct / stats.total * 100)) + '%' : '0%';
+        }
+
+        function showPractice() {
+            document.getElementById('reading-page').classList.add('hidden');
+            document.getElementById('practice-page').classList.add('active');
+            stats = { total: 0, correct: 0 };
+            updateStats();
+            nextQuestion();
+        }
+
+        function renderPart(part, partIndex) {
+            var correct = part.correct;
+            var options = part.options;
+            var multi = part.multi;
+            var html = '<div class="part-block" data-part-index="' + partIndex + '">';
+            html += '<div class="part-prompt">' + part.prompt + (multi ? ' <span class="multi-hint">（多选）</span>' : '') + '</div>';
+            html += '<div class="part-options">';
+            options.forEach(function(opt) {
+                var cls = multi ? 'option-chip' : 'option-btn';
+                html += '<span class="' + cls + '" data-value="' + opt + '">' + opt + '</span>';
+            });
+            html += '</div><div class="part-feedback" id="part-fb-' + partIndex + '"></div></div>';
+            return html;
+        }
+
+        function nextQuestion() {
+            answered = false;
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('feedback').className = 'feedback';
+            document.getElementById('btn-submit').style.display = 'inline-block';
+            document.getElementById('btn-submit').disabled = false;
+            document.getElementById('btn-next').style.display = 'none';
+
+            if (currentIndex >= allQuestions.length) {
+                document.getElementById('question-text').textContent = '练习完成！';
+                document.getElementById('progress').textContent = '已完成 ' + allQuestions.length + ' 题';
+                document.getElementById('parts-container').innerHTML = '';
+                document.getElementById('btn-submit').style.display = 'none';
+                return;
+            }
+
+            var item = allQuestions[currentIndex];
+            document.getElementById('progress').textContent = '第 ' + (currentIndex + 1) + ' 题 / 共 ' + allQuestions.length + ' 题';
+            document.getElementById('question-text').textContent = item.title;
+
+            var partsHtml = '';
+            item.parts.forEach(function(p, i) { partsHtml += renderPart(p, i); });
+            document.getElementById('parts-container').innerHTML = partsHtml;
+
+            item.parts.forEach(function(part, partIndex) {
+                var block = document.querySelector('.part-block[data-part-index="' + partIndex + '"]');
+                var multi = part.multi;
+                if (multi) {
+                    block.querySelectorAll('.option-chip').forEach(function(chip) {
+                        chip.onclick = function() {
+                            if (answered) return;
+                            this.classList.toggle('selected');
+                        };
+                    });
+                } else {
+                    var selected = null;
+                    block.querySelectorAll('.option-btn').forEach(function(btn) {
+                        btn.onclick = function() {
+                            if (answered) return;
+                            if (selected) selected.classList.remove('selected');
+                            this.classList.add('selected');
+                            selected = this;
+                        };
+                    });
+                }
+            });
+        }
+
+        function getSelected(item) {
+            var selected = [];
+            item.parts.forEach(function(part, partIndex) {
+                var block = document.querySelector('.part-block[data-part-index="' + partIndex + '"]');
+                var partSel = [];
+                if (part.multi) {
+                    block.querySelectorAll('.option-chip.selected').forEach(function(c) {
+                        partSel.push(c.getAttribute('data-value'));
+                    });
+                } else {
+                    var btn = block.querySelector('.option-btn.selected');
+                    if (btn) partSel.push(btn.getAttribute('data-value'));
+                }
+                selected.push(partSel);
+            });
+            return selected;
+        }
+
+        document.getElementById('btn-submit').onclick = function() {
+            if (answered) return;
+            var item = allQuestions[currentIndex];
+            var selected = getSelected(item);
+            var allCorrect = true;
+            item.parts.forEach(function(part, i) {
+                var partCorrect = sameSet(selected[i] || [], part.correct);
+                if (!partCorrect) allCorrect = false;
+                var fb = document.getElementById('part-fb-' + i);
+                if (fb) {
+                    fb.textContent = partCorrect ? '✓ 正确' : '✗ 正确答案：' + part.correct.join('、');
+                    fb.className = 'part-feedback ' + (partCorrect ? 'ok' : 'err');
+                }
+                var block = document.querySelector('.part-block[data-part-index="' + i + '"]');
+                block.querySelectorAll('.option-chip, .option-btn').forEach(function(el) {
+                    el.classList.add('disabled');
+                    var val = el.getAttribute('data-value');
+                    if (part.correct.indexOf(val) !== -1) el.classList.add('correct');
+                    else if ((selected[i] || []).indexOf(val) !== -1) el.classList.add('wrong');
+                });
+            });
+            answered = true;
+            stats.total += 1;
+            if (allCorrect) stats.correct += 1;
+            updateStats();
+            document.getElementById('feedback').textContent = allCorrect ? '全部正确！' : '有错误，请查看上方解析';
+            document.getElementById('feedback').className = 'feedback ' + (allCorrect ? 'right' : 'error');
+            document.getElementById('btn-submit').style.display = 'none';
+            document.getElementById('btn-next').style.display = 'inline-block';
+        };
+
+        document.getElementById('btn-start').onclick = showPractice;
+        document.getElementById('btn-next').onclick = function() {
+            currentIndex++;
+            nextQuestion();
+        };
+    })();
+    </script>
+</body>
+</html>
