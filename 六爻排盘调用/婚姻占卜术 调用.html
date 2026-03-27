@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>婚姻占卜术</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .wrap {
+      max-width: 430px;
+      margin: 0 auto;
+    }
+    .card {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 900;
+      color: #f5d68a;
+      margin: 6px 0 12px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 8px 0; /* 顶部不留额外间距 */
+      flex-wrap: wrap;
+    }
+    .radio-group {
+      display: flex;
+      gap: 8px;
+    }
+    .radio-item input { display: none; }
+    .radio-item label {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 0 10px; /* 上下边距收紧到0 */
+      line-height: 1.1;
+      cursor: pointer;
+      user-select: none;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+    .radio-item input:checked + label {
+      color: #0b1220;
+      border-color: rgba(245,214,138,0.9);
+      background: #f5d68a;
+      font-weight: 800;
+    }
+    .fields {
+      display: grid;
+      grid-template-columns: auto auto auto; /* 按内容宽度排，不再平均拉伸 */
+      gap: 0; /* 三段之间不留缝隙 */
+      justify-content: flex-start;
+    }
+    .date-line{
+      display: flex;
+      align-items: center;
+      justify-content: center; /* 第一行整体居中 */
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .date-line .radio-group{
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+    .date-line .fields{
+      flex: 0 0 auto;
+      min-width: auto;
+      margin: 0;
+      align-self: center;
+    }
+    .date-token{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0; /* 单位紧贴输入框，不留缝隙 */
+    }
+    .date-unit{
+      color: #f5d68a; /* 金色 */
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1;
+      margin-left: -1px; /* 单位与输入内容更紧贴 */
+      padding-left: 0;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field.inline{
+      flex-direction: row;
+      align-items: center;
+      justify-content: center; /* 两行整体居中 */
+      gap: 8px;
+    }
+    .field.inline label{
+      flex: 0 0 auto;
+      margin: 0;
+      white-space: nowrap;
+    }
+    .label-tip-trigger{
+      cursor: pointer;
+      text-decoration: underline dotted rgba(245,214,138,0.55);
+      text-underline-offset: 2px;
+    }
+    .label-tip-box{
+      position: fixed;
+      z-index: 9999;
+      display: none;
+      max-width: 240px;
+      background: rgba(255,255,255,0.9);
+      color: #111827;
+      border: 1px dashed rgba(245,214,138,0.75);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      pointer-events: none;
+    }
+    #resultTipBox{
+      max-width: 240px;
+      white-space: normal;
+      word-break: break-word;
+    }
+    .field.inline input{
+      flex: 0 0 50%;
+      width: 50%;
+      min-width: 0;
+      padding-top: 0;
+      padding-bottom: 0; /* 上下不留空隙 */
+      line-height: 1.1;
+      border-bottom: none; /* 隐藏底部边框 */
+      text-align: center; /* 输入内容居中 */
+    }
+    .field label {
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+    .fields .field label {
+      display: none; /* 日期区不显示“年/月/日” */
+    }
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      color: #f8fafc;
+      padding: 8px;
+      font-size: 14px;
+    }
+    .fields input[type="number"]{
+      text-align: center; /* 年月日在输入框内居中 */
+      padding-left: 0;
+      padding-right: 0; /* 左右不留空隙 */
+      border: none;
+      background: transparent;
+      border-radius: 0;
+    }
+    #yearInput{
+      width: 4.4ch; /* 年按四位数字宽度 */
+      margin: 0;
+    }
+    #monthInput, #dayInput{
+      width: 2ch; /* 月/日按两位数字极限宽度 */
+      margin: 0;
+      text-align: right; /* 让数字贴近后面的“月/日”单位 */
+    }
+    .btn {
+      display: block;
+      width: 72%;
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      padding: 4px 12px; /* 上下间距变窄 */
+      font-size: 16px;
+      font-weight: 900;
+      color: #0b1220;
+      background: linear-gradient(135deg, #f5d68a 0%, #e8c56a 100%);
+      cursor: pointer;
+    }
+    .result p {
+      margin: 6px 0;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+    .result strong { color: #f5d68a; }
+    .result-title{
+      color: #f5d68a;
+      font-weight: 900;
+      margin-bottom: 6px;
+      font-size: 14px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      text-decoration: underline dotted rgba(245,214,138,0.65);
+      text-underline-offset: 3px;
+    }
+    #resultText{
+      min-height: 96px;
+    }
+    .map-wrap{
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      margin: 8px auto 0;
+    }
+    #map {
+      width: 100%;
+      height: 380px;
+      display: block;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.02);
+    }
+    #compassOverlay{
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 220px;
+      height: 220px;
+      transform: translate(-110px, -110px); /* 圆心对齐到 left/top 这个锚点 */
+      pointer-events: none;
+      overflow: visible;
+      z-index: 800; /* 保证在地图图层上方 */
+    }
+    #compassOverlay .ring{
+      fill: rgba(0,0,0,0.12);
+      stroke: rgba(245,214,138,0.72);
+      stroke-width: 1.2;
+    }
+    #compassOverlay .cross{
+      stroke: rgba(255,255,255,0.24);
+      stroke-width: 1;
+    }
+    #compassOverlay .dir{
+      fill: #f5d68a;
+      font-size: 11px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    #compassOverlay .branch{
+      fill: #e5e7eb;
+      font-size: 12px;
+      font-weight: 900;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    #compassOverlay .focus-line{
+      stroke: rgba(245,214,138,0.95);
+      stroke-width: 2.2;
+    }
+    .hint {
+      color: #94a3b8;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 6px;
+      text-align: center;
+    }
+    .sub-title {
+      margin: 6px 0 8px;
+      color: #f5d68a;
+      font-weight: 800;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">婚姻占卜术</div>
+
+    <div class="card">
+      <div class="date-line">
+        <div class="radio-group">
+          <div class="radio-item">
+            <input id="srcSolar" type="radio" name="srcType" value="solar" checked />
+            <label for="srcSolar">阳历</label>
+          </div>
+          <div class="radio-item">
+            <input id="srcLunar" type="radio" name="srcType" value="lunar" />
+            <label for="srcLunar">农历</label>
+          </div>
+        </div>
+        <div class="fields">
+          <div class="field">
+            <label>年</label>
+            <div class="date-token">
+              <input id="yearInput" type="number" min="1900" max="2100" value="2000" />
+              <span class="date-unit">年</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>月</label>
+            <div class="date-token">
+              <input id="monthInput" type="number" min="1" max="12" value="5" />
+              <span class="date-unit">月</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>日</label>
+            <div class="date-token">
+              <input id="dayInput" type="number" min="1" max="31" value="6" />
+              <span class="date-unit">日</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field inline" style="margin-top:8px;">
+        <label><span class="label-tip-trigger" data-tip="作为原点">出生地区</span></label>
+        <input id="placeInput" type="text" placeholder="例如：杭州" />
+      </div>
+      <div class="field inline" style="margin-top:8px;">
+        <label><span class="label-tip-trigger" data-tip="看是否在正缘线上">地名核验</span></label>
+        <input id="checkPlaceInput" type="text" placeholder="例如：苏州" />
+      </div>
+
+      <button class="btn" id="calcBtn">开始占卜</button>
+      <div class="hint">
+        <span class="label-tip-trigger" data-tip="以农历月对应地支为起点，按日数顺推（起点算1次）得到落点地支与方位。">规则</span>
+      </div>
+    </div>
+
+    <div class="card result" id="resultCard">
+      <div class="result-title" id="resultTitle">测算结果</div>
+      <div id="resultText"><p>等待输入并计算...</p></div>
+      <div class="map-wrap">
+        <div id="map"></div>
+        <svg id="compassOverlay" viewBox="0 0 220 220"></svg>
+      </div>
+    </div>
+  </div>
+  <div id="labelTipBox" class="label-tip-box"></div>
+  <div id="resultTipBox" class="label-tip-box"></div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    (function () {
+      const branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+      const monthToBranch = {
+        1: '寅', 2: '卯', 3: '辰', 4: '巳', 5: '午', 6: '未',
+        7: '申', 8: '酉', 9: '戌', 10: '亥', 11: '子', 12: '丑'
+      };
+      const branchToDirection = {
+        '子': '正北',
+        '丑': '东北偏北',
+        '寅': '东北偏东',
+        '卯': '正东',
+        '辰': '东南偏东',
+        '巳': '东南',
+        '午': '正南',
+        '未': '西南偏南',
+        '申': '西南偏西',
+        '酉': '正西',
+        '戌': '西北偏西',
+        '亥': '西北偏北'
+      };
+      const branchToAngle = {
+        '子': 0, '丑': 30, '寅': 60, '卯': 90, '辰': 120, '巳': 150,
+        '午': 180, '未': 210, '申': 240, '酉': 270, '戌': 300, '亥': 330
+      };
+
+      const cnMonth = {1:'正',2:'二',3:'三',4:'四',5:'五',6:'六',7:'七',8:'八',9:'九',10:'十',11:'十一',12:'十二'};
+      function lunarDayCN(d) {
+        const n = ['零','一','二','三','四','五','六','七','八','九','十'];
+        if (d <= 10) return `初${n[d]}`;
+        if (d < 20) return `十${n[d - 10]}`;
+        if (d === 20) return '二十';
+        if (d < 30) return `廿${n[d - 20]}`;
+        return '三十';
+      }
+
+      // ----- 农历数据与转换 -----
+      const lunarInfo = [
+        0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+        0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+        0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+        0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+        0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+        0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,
+        0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+        0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,
+        0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+        0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x05ac0,0x0ab60,0x096d5,0x092e0,
+        0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+        0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+        0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+        0x05aa0,0x076a3,0x096d0,0x04bd7,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+        0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0
+      ];
+      function lYearDays(y){ let s=348; for(let i=0x8000;i>0x8;i>>=1) s+=(lunarInfo[y-1900]&i)?1:0; return s+leapDays(y); }
+      function leapMonth(y){ return lunarInfo[y-1900] & 0xf; }
+      function leapDays(y){ if(leapMonth(y)) return (lunarInfo[y-1900] & 0x10000)?30:29; return 0; }
+      function monthDays(y,m){ return (lunarInfo[y-1900] & (0x10000>>m))?30:29; }
+      function lunarToSolar(lYear, lMonth, lDay) {
+        const baseMs = Date.UTC(1900,0,30,16,0,0);
+        let offset = 0;
+        for(let y=1900; y<lYear; y++) offset += lYearDays(y);
+        const leap = leapMonth(lYear);
+        for(let m=1; m<lMonth; m++){
+          if(leap>0 && m === leap+1) offset += leapDays(lYear);
+          offset += monthDays(lYear, m);
+        }
+        offset += lDay - 1;
+        return new Date(baseMs + offset * 86400000);
+      }
+      function solarToLunar(solarDate) {
+        const t = new Date(solarDate.getFullYear(), solarDate.getMonth(), solarDate.getDate());
+        const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
+        for (let ly = y - 1; ly <= y + 1; ly++) {
+          if (ly < 1900 || ly > 2100) continue;
+          for (let lm = 1; lm <= 12; lm++) {
+            const maxD = monthDays(ly, lm);
+            for (let ld = 1; ld <= maxD; ld++) {
+              const s = lunarToSolar(ly, lm, ld);
+              if (s.getFullYear() === y && s.getMonth() === m && s.getDate() === d) {
+                return { lYear: ly, lMonth: lm, lDay: ld };
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      // ----- 计算 -----
+      const yearInput = document.getElementById('yearInput');
+      const monthInput = document.getElementById('monthInput');
+      const dayInput = document.getElementById('dayInput');
+      const placeInput = document.getElementById('placeInput');
+      const checkPlaceInput = document.getElementById('checkPlaceInput');
+      const calcBtn = document.getElementById('calcBtn');
+      const resultTitle = document.getElementById('resultTitle');
+      const resultText = document.getElementById('resultText');
+      const labelTipBox = document.getElementById('labelTipBox');
+      const resultTipBox = document.getElementById('resultTipBox');
+      const map = L.map('map', { zoomControl: true }).setView([34.2, 108.9], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+      let originMarker = null;
+      let lineLayer = null;
+      const compassSvg = document.getElementById('compassOverlay');
+      const geoCache = new Map();
+      let myOriginLatLng = null;
+      let detailLinesCache = [];
+
+      function getSelectedType() {
+        return document.querySelector('input[name="srcType"]:checked')?.value || 'solar';
+      }
+      function fmtSolar(y, m, d) { return `${y}年${m}月${d}日`; }
+      function fmtLunar(y, m, d) { return `${y}年${cnMonth[m] || m}月${lunarDayCN(d)}`; }
+
+      function clampMonth() {
+        const mv = parseInt(monthInput.value, 10);
+        if (!Number.isFinite(mv)) return;
+        if (mv < 1) monthInput.value = 1;
+        if (mv > 12) monthInput.value = 12;
+      }
+
+      function updateDayMaxAndClamp() {
+        clampMonth();
+        const y = parseInt(yearInput.value, 10);
+        const m = parseInt(monthInput.value, 10);
+        if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) return;
+
+        const srcType = getSelectedType();
+        let maxDay = 31;
+        if (srcType === 'solar') {
+          maxDay = new Date(y, m, 0).getDate();
+        } else {
+          // 农历按该年该月大小月限制
+          maxDay = monthDays(y, m);
+        }
+        dayInput.min = 1;
+        dayInput.max = maxDay;
+        const dv = parseInt(dayInput.value, 10);
+        if (!Number.isFinite(dv) || dv < 1) {
+          dayInput.value = 1;
+        } else if (dv > maxDay) {
+          dayInput.value = maxDay;
+        }
+      }
+
+      async function geocodePlace(placeText) {
+        const key = String(placeText || '').trim();
+        if (!key) throw new Error('地名为空');
+        if (geoCache.has(key)) return geoCache.get(key);
+        const q = encodeURIComponent(placeText);
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${q}`;
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 5000);
+        const resp = await fetch(url, {
+          headers: { 'Accept': 'application/json' },
+          signal: ctrl.signal
+        }).finally(() => clearTimeout(t));
+        if (!resp.ok) throw new Error('地理编码请求失败');
+        const list = await resp.json();
+        if (!Array.isArray(list) || list.length === 0) throw new Error('未找到该出生地');
+        const geo = { lat: parseFloat(list[0].lat), lon: parseFloat(list[0].lon) };
+        geoCache.set(key, geo);
+        return geo;
+      }
+
+      function destinationPoint(lat, lon, bearingDeg, distanceKm) {
+        const R = 6371;
+        const br = bearingDeg * Math.PI / 180;
+        const d = distanceKm / R;
+        const lat1 = lat * Math.PI / 180;
+        const lon1 = lon * Math.PI / 180;
+        const lat2 = Math.asin(Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(br));
+        const lon2 = lon1 + Math.atan2(
+          Math.sin(br) * Math.sin(d) * Math.cos(lat1),
+          Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
+        );
+        return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
+      }
+
+      function normalizeAngleDiff(a, b) {
+        let d = Math.abs(a - b) % 360;
+        if (d > 180) d = 360 - d;
+        return d;
+      }
+
+      function bearingBetween(lat1, lon1, lat2, lon2) {
+        const p1 = lat1 * Math.PI / 180;
+        const p2 = lat2 * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const y = Math.sin(dLon) * Math.cos(p2);
+        const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dLon);
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; // 0=北，顺时针
+      }
+
+      function onFatedLine(originGeo, targetGeo, targetBearing, toleranceDeg = 18) {
+        const b = bearingBetween(originGeo.lat, originGeo.lon, targetGeo.lat, targetGeo.lon);
+        const d1 = normalizeAngleDiff(b, targetBearing);
+        const d2 = normalizeAngleDiff((b + 180) % 360, targetBearing);
+        return Math.min(d1, d2) <= toleranceDeg;
+      }
+
+      function haversineKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const toRad = (v) => v * Math.PI / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      const famousCitiesCN = [
+        { n: '北京', lat: 39.9042, lon: 116.4074 },
+        { n: '上海', lat: 31.2304, lon: 121.4737 },
+        { n: '广州', lat: 23.1291, lon: 113.2644 },
+        { n: '深圳', lat: 22.5431, lon: 114.0579 },
+        { n: '杭州', lat: 30.2741, lon: 120.1551 },
+        { n: '苏州', lat: 31.2989, lon: 120.5853 },
+        { n: '南京', lat: 32.0603, lon: 118.7969 },
+        { n: '成都', lat: 30.5728, lon: 104.0668 },
+        { n: '重庆', lat: 29.5630, lon: 106.5516 },
+        { n: '武汉', lat: 30.5928, lon: 114.3055 },
+        { n: '西安', lat: 34.3416, lon: 108.9398 },
+        { n: '天津', lat: 39.3434, lon: 117.3616 },
+        { n: '青岛', lat: 36.0671, lon: 120.3826 },
+        { n: '厦门', lat: 24.4798, lon: 118.0894 },
+        { n: '香港', lat: 22.3193, lon: 114.1694 }
+      ];
+
+      const famousCitiesWorld = [
+        { n: '东京', lat: 35.6762, lon: 139.6503 },
+        { n: '新加坡', lat: 1.3521, lon: 103.8198 },
+        { n: '首尔', lat: 37.5665, lon: 126.9780 },
+        { n: '纽约', lat: 40.7128, lon: -74.0060 },
+        { n: '伦敦', lat: 51.5074, lon: -0.1278 },
+        { n: '巴黎', lat: 48.8566, lon: 2.3522 },
+        { n: '法兰克福', lat: 50.1109, lon: 8.6821 },
+        { n: '迪拜', lat: 25.2048, lon: 55.2708 },
+        { n: '悉尼', lat: -33.8688, lon: 151.2093 },
+        { n: '洛杉矶', lat: 34.0522, lon: -118.2437 },
+        { n: '旧金山', lat: 37.7749, lon: -122.4194 },
+        { n: '多伦多', lat: 43.6532, lon: -79.3832 }
+      ];
+
+      function pickCitiesOnFatedLine(originGeo, bearing, cities, maxCount = 5) {
+        return cities
+          .map((c) => {
+            const b = bearingBetween(originGeo.lat, originGeo.lon, c.lat, c.lon);
+            const d1 = normalizeAngleDiff(b, bearing);
+            const d2 = normalizeAngleDiff((b + 180) % 360, bearing);
+            const angDiff = Math.min(d1, d2);
+            const dist = haversineKm(originGeo.lat, originGeo.lon, c.lat, c.lon);
+            return { ...c, angDiff, dist };
+          })
+          .filter((x) => x.dist > 30) // 避免把原点附近城市当成“线上推荐”
+          .sort((a, b) => (a.angDiff - b.angDiff) || (a.dist - b.dist))
+          .slice(0, maxCount);
+      }
+
+      function drawCompassOverlay(targetBranch) {
+        const cx = 110, cy = 110, r = 95;
+        const parts = [];
+        parts.push(`<circle class="ring" cx="${cx}" cy="${cy}" r="${r}" />`);
+        parts.push(`<line class="cross" x1="${cx-r}" y1="${cy}" x2="${cx+r}" y2="${cy}" />`);
+        parts.push(`<line class="cross" x1="${cx}" y1="${cy-r}" x2="${cx}" y2="${cy+r}" />`);
+        parts.push(`<circle cx="${cx}" cy="${cy}" r="3.5" fill="rgba(255,255,255,0.95)" />`);
+        if (targetBranch && branchToAngle[targetBranch] !== undefined) {
+          const ang = branchToAngle[targetBranch];
+          const rad = (ang - 90) * Math.PI / 180;
+          const x1 = cx - Math.cos(rad) * (r + 6);
+          const y1 = cy - Math.sin(rad) * (r + 6);
+          const x2 = cx + Math.cos(rad) * (r + 6);
+          const y2 = cy + Math.sin(rad) * (r + 6);
+          parts.push(`<line class="focus-line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`);
+        }
+
+        const dirs = [
+          { ang: 0, txt: '北' }, { ang: 90, txt: '东' }, { ang: 180, txt: '南' }, { ang: 270, txt: '西' }
+        ];
+        dirs.forEach((d) => {
+          const rad = (d.ang - 90) * Math.PI / 180;
+          const x = cx + Math.cos(rad) * (r + 12);
+          const y = cy + Math.sin(rad) * (r + 12);
+          parts.push(`<text class="dir" x="${x}" y="${y}">${d.txt}</text>`);
+        });
+
+        branches.forEach((b, i) => {
+          const ang = i * 30;
+          const rad = (ang - 90) * Math.PI / 180;
+          const x = cx + Math.cos(rad) * (r - 14);
+          const y = cy + Math.sin(rad) * (r - 14);
+          parts.push(`<text class="branch" x="${x}" y="${y}">${b}</text>`);
+        });
+        compassSvg.innerHTML = parts.join('');
+      }
+
+      function updateCompassAnchor() {
+        if (!myOriginLatLng) return;
+        const p = map.latLngToContainerPoint(myOriginLatLng);
+        compassSvg.style.left = `${p.x}px`;
+        compassSvg.style.top = `${p.y}px`;
+      }
+
+      function drawDirectionOnMap(originLat, originLon, branch, placeText) {
+        myOriginLatLng = L.latLng(originLat, originLon);
+        const bearing = branchToAngle[branch] ?? 0; // 0=北，顺时针
+
+        if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
+        if (lineLayer) map.removeLayer(lineLayer);
+
+        // 按你的要求：先取“计算点”（单侧点），再与出生地点连线并向两端延长
+        const targetPoint = destinationPoint(originLat, originLon, bearing, 2200);
+        const originPt = map.latLngToContainerPoint([originLat, originLon]);
+        const targetPt = map.latLngToContainerPoint([targetPoint.lat, targetPoint.lon]);
+        let vx = targetPt.x - originPt.x;
+        let vy = targetPt.y - originPt.y;
+        const norm = Math.hypot(vx, vy) || 1;
+        vx /= norm;
+        vy /= norm;
+        const lineLenPx = 2200; // 线长（像素）
+        const pStart = L.point(originPt.x - vx * lineLenPx, originPt.y - vy * lineLenPx);
+        const pEnd = L.point(originPt.x + vx * lineLenPx, originPt.y + vy * lineLenPx);
+        const llStart = map.containerPointToLatLng(pStart);
+        const llEnd = map.containerPointToLatLng(pEnd);
+
+        lineLayer = L.polyline([llStart, llEnd], {
+          color: '#f5d68a',
+          weight: 4,
+          opacity: 0.9
+        }).addTo(map);
+        // 强制以“我”的出生地为地图中心，使固定方位圆圆心=我的出生地
+        map.setView([originLat, originLon], 7);
+        updateCompassAnchor();
+      }
+
+      function buildPersonData(srcType, y, m, d) {
+        let lunarY, lunarM, lunarD;
+        let solarY, solarM, solarD;
+        if (srcType === 'solar') {
+          solarY = y; solarM = m; solarD = d;
+          const lunar = solarToLunar(new Date(y, m - 1, d));
+          if (!lunar) throw new Error('阳历转农历失败，请检查日期范围（1900-2100）');
+          lunarY = lunar.lYear; lunarM = lunar.lMonth; lunarD = lunar.lDay;
+        } else {
+          lunarY = y; lunarM = m; lunarD = d;
+          const solar = lunarToSolar(y, m, d);
+          solarY = solar.getFullYear(); solarM = solar.getMonth() + 1; solarD = solar.getDate();
+        }
+        const startBranch = monthToBranch[lunarM];
+        const startIdx = branches.indexOf(startBranch);
+        const targetIdx = (startIdx + (lunarD - 1)) % 12;
+        const targetBranch = branches[targetIdx];
+        const direction = branchToDirection[targetBranch] || '未知方位';
+        const bearing = branchToAngle[targetBranch] ?? 0;
+        return { lunarY, lunarM, lunarD, solarY, solarM, solarD, startBranch, targetBranch, direction, bearing };
+      }
+
+      async function calculate() {
+        resultText.innerHTML = `<p>计算中，请稍候...</p>`;
+        const srcType = getSelectedType();
+        const y = parseInt(yearInput.value, 10);
+        const m = parseInt(monthInput.value, 10);
+        const d = parseInt(dayInput.value, 10);
+        const place = placeInput.value.trim();
+        const checkPlace = checkPlaceInput.value.trim();
+        const name1 = '我';
+        if (!y || !m || !d) return;
+        const p1 = buildPersonData(srcType, y, m, d);
+
+        drawCompassOverlay(p1.targetBranch);
+
+        let geo = null, geoErr = '';
+        const p1Task = place ? geocodePlace(place).then(v => { geo = v; }).catch(e => { geoErr = e.message || '地理编码失败'; }) : Promise.resolve(geoErr = '未填写出生地区，地图使用默认中心。');
+        await Promise.all([p1Task]);
+
+        let mapHint = '';
+        if (geo) {
+          drawDirectionOnMap(geo.lat, geo.lon, p1.targetBranch, place);
+        } else {
+          mapHint = `（地图提示：${geoErr}）`;
+          if (lineLayer) { map.removeLayer(lineLayer); lineLayer = null; }
+          if (originMarker) { map.removeLayer(originMarker); originMarker = null; }
+          myOriginLatLng = null;
+          compassSvg.style.left = '-9999px';
+          compassSvg.style.top = '-9999px';
+          map.setView([34.2, 108.9], 4);
+        }
+
+        let checkText = '';
+        if (checkPlace) {
+          if (!geo) {
+            checkText = `核验结果：未能定位出生地区，无法核验「${checkPlace}」是否在正缘线上。`;
+          } else {
+            try {
+              const checkGeo = await geocodePlace(checkPlace);
+              const ok = onFatedLine(geo, checkGeo, p1.bearing, 18);
+              checkText = ok
+                ? `核验结果：地名「${checkPlace}」在正缘线上（可能是）。`
+                : `核验结果：地名「${checkPlace}」不在正缘线上（可排除）。`;
+            } catch (e) {
+              checkText = `核验结果：地名「${checkPlace}」定位失败，无法判断。`;
+            }
+          }
+        }
+
+        let citySuggestHtml = '';
+        if (geo) {
+          const cnList = pickCitiesOnFatedLine(geo, p1.bearing, famousCitiesCN, 6).map(c => c.n);
+          const worldList = pickCitiesOnFatedLine(geo, p1.bearing, famousCitiesWorld, 6).map(c => c.n);
+          citySuggestHtml = `
+            <p><strong>正缘线代表城市（国内）</strong>：${cnList.join('、') || '暂无'}</p>
+            <p><strong>正缘线代表城市（国外）</strong>：${worldList.join('、') || '暂无'}</p>
+          `;
+        } else {
+          citySuggestHtml = `
+            <p><strong>正缘线代表城市（国内）</strong>：未生成（需先成功定位出生地区）</p>
+            <p><strong>正缘线代表城市（国外）</strong>：未生成（需先成功定位出生地区）</p>
+          `;
+        }
+
+        detailLinesCache = [
+          `输入日期：${srcType === 'solar' ? `阳历 ${fmtSolar(p1.solarY, p1.solarM, p1.solarD)}` : `农历 ${fmtLunar(p1.lunarY, p1.lunarM, p1.lunarD)}`}`,
+          `换算日期：农历 ${fmtLunar(p1.lunarY, p1.lunarM, p1.lunarD)}`,
+          `推算过程：农历${cnMonth[p1.lunarM] || p1.lunarM}月对应 ${p1.startBranch}，往后数${p1.lunarD}次（${p1.startBranch}算第1次），落在 ${p1.targetBranch}（${p1.direction}）`,
+          `结论：以「${place || '出生地区'}」为原点，沿 ${p1.direction} 方向作延长线，命定之人出生地区可能在该线上。${mapHint || ''}`
+        ];
+
+        resultText.innerHTML = `
+          <p><strong>正缘可能出现方位</strong>：${p1.targetBranch} 对应 <strong>${p1.direction}</strong></p>
+          ${citySuggestHtml}
+          ${checkText ? `<p><strong>地名核验</strong>：${checkText}</p>` : ''}
+        `;
+        setTimeout(() => map.invalidateSize(), 0);
+      }
+
+      calcBtn.addEventListener('click', calculate);
+      yearInput.addEventListener('input', updateDayMaxAndClamp);
+      monthInput.addEventListener('input', updateDayMaxAndClamp);
+      dayInput.addEventListener('input', updateDayMaxAndClamp);
+      document.getElementById('srcSolar').addEventListener('change', updateDayMaxAndClamp);
+      document.getElementById('srcLunar').addEventListener('change', updateDayMaxAndClamp);
+      resultTitle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!detailLinesCache.length) return;
+        resultTipBox.innerHTML = detailLinesCache.map(t => `<div>${t}</div>`).join('<div style="height:4px;"></div>');
+        resultTipBox.style.display = 'block';
+        const rect = resultTitle.getBoundingClientRect();
+        let left = (window.innerWidth - resultTipBox.getBoundingClientRect().width) / 2; // 水平居中
+        let top = rect.bottom + 6;
+        const boxRect = resultTipBox.getBoundingClientRect();
+        if (left + boxRect.width > window.innerWidth - 8) left = window.innerWidth - 8 - boxRect.width;
+        if (left < 8) left = 8;
+        if (top + boxRect.height > window.innerHeight - 8) top = rect.top - boxRect.height - 6;
+        if (top < 8) top = 8;
+        resultTipBox.style.left = `${left}px`;
+        resultTipBox.style.top = `${top}px`;
+      });
+      document.querySelectorAll('.label-tip-trigger').forEach((el) => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const tip = el.getAttribute('data-tip') || '';
+          if (!tip) return;
+          labelTipBox.textContent = tip;
+          labelTipBox.style.display = 'block';
+          const rect = el.getBoundingClientRect();
+          let left = rect.left;
+          let top = rect.bottom + 6;
+          const boxRect = labelTipBox.getBoundingClientRect();
+          if (left + boxRect.width > window.innerWidth - 8) left = window.innerWidth - 8 - boxRect.width;
+          if (left < 8) left = 8;
+          if (top + boxRect.height > window.innerHeight - 8) top = rect.top - boxRect.height - 6;
+          if (top < 8) top = 8;
+          labelTipBox.style.left = `${left}px`;
+          labelTipBox.style.top = `${top}px`;
+        });
+      });
+      document.addEventListener('click', () => {
+        labelTipBox.style.display = 'none';
+        resultTipBox.style.display = 'none';
+      });
+      map.on('zoom move resize', updateCompassAnchor);
+      drawCompassOverlay();
+      updateDayMaxAndClamp();
+      calculate();
+    })();
+  </script>
+</body>
+</html>
+

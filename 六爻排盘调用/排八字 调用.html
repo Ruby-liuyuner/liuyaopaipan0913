@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>排八字</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 430px; /* 手机端：不超出 430px */
+      margin: 0 auto;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 18px 0; /* 左右贴边，不留空隙 */
+    }
+    h1 {
+      margin: 6px 0 16px;
+      font-size: 20px;
+      color: #f5d68a;
+      text-align: center;
+    }
+    .grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px; /* 缩短上方边框到下方输入卡片的距离 */
+    }
+    @media (max-width: 860px) {
+      .grid { flex-direction: column; }
+    }
+    .card {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .card.no-frame{
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .card-title {
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #d1d5db;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 2px 0 0 0; /* 顶部留一点，下方不占用距离（与 time-row 间距单独控制） */
+      flex-wrap: wrap;
+      justify-content: center; /* 阳历/农历居中 */
+    }
+    label {
+      font-size: 14px;
+      color: #cbd5e1;
+      min-width: 70px;
+    }
+    input[type="number"], select, input[type="text"]{
+      background: rgba(255,255,255,0.06);
+      /* 边框过粗：用更细的半像素边框 */
+      border: 0.7px solid rgba(255,255,255,0.12);
+      color: #e5e7eb;
+      border-radius: 10px;
+      padding: 9px 10px;
+      outline: none;
+      min-width: 110px;
+      flex: 1;
+      text-align: center; /* 让输入内容相对 border 居中 */
+    }
+
+    /* 去掉 number 输入框右侧“上下箭头/微调器” */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    /* 去掉 select 右侧原生下拉箭头（仍可点击展开选项并滚动） */
+    select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: none;
+      padding-right: 10px;
+    }
+    input[type="number"]{ flex: 0 0 110px; }
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; justify-content: center; }
+    .radio-item { display: flex; align-items: center; gap: 6px; }
+
+    /* 把单选框变成“按钮”，去掉前面的圆点 */
+    .radio-item input[type="radio"]{
+      display: none;
+    }
+    .radio-item label{
+      min-width: auto; /* 覆盖全局 label 的 min-width */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      /* 边框到文字的距离太大：继续收紧上下内边距 */
+      padding: 2px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: #cbd5e1;
+      font-weight: 800;
+      transition: transform .08s ease, background .15s ease, border-color .15s ease, color .15s ease;
+      user-select: none;
+      line-height: 1;
+    }
+    .radio-item input[type="radio"]:checked + label{
+      border-color: rgba(245,214,138,0.55);
+      background: linear-gradient(135deg, #f5d68a 0%, #e8c56a 100%);
+      color: #0b1220;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+    .radio-item label:hover{
+      transform: translateY(-1px);
+    }
+    .btn {
+      width: 100%;
+      padding: 2px 16px; /* 上下留白压到约 2px */
+      border-radius: 12px;
+      cursor: pointer;
+      border: none;
+      font-weight: 900; /* 字体本体按最大可用字重 */
+      font-size: 18px; /* 再大一点 */
+      color: #0b1220;
+      -webkit-text-stroke: 0.25px rgba(11,18,32,0.9); /* 让“排八字”视觉更粗 */
+      text-shadow: 0 0 0.6px rgba(11,18,32,0.85);
+      background: linear-gradient(135deg, #f5d68a 0%, #e8c56a 100%);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      margin-top: 18px; /* 与上方年月日时输入区间距：原 6px * 3 */
+      line-height: 1;
+    }
+    .btn:hover { opacity: 0.98; transform: translateY(-1px); }
+    .hint {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .pillars {
+      display: flex;
+      /* 用均匀分布控制间距：不再用固定 gap 叠加 */
+      gap: 0;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      justify-content: space-between; /* 年/月/日/时柱均匀分布 */
+      flex: 1; /* 占满右侧剩余宽度，便于均匀拉开 */
+      min-width: 0;
+    }
+    .result-row {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      justify-content: flex-start; /* 左侧开始布局，便于精确控制距离 */
+      padding-left: 5px; /* 天干/地支距离左侧 5px */
+    }
+    /* 顶部“实时排盘”卡片：不显示天干/地支/年月日时柱字样，只保留八字 */
+    .live-card .axis{ display:none; }
+    .live-card .result-row{
+      padding-left: 0;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .live-card .pillar-title{ display:none; }
+    .live-card .pillars{
+      flex: 0 0 46%;
+      max-width: 46%;
+      min-width: 0;
+      overflow: visible;
+      justify-content: space-between;
+    }
+    .live-card .pillar{
+      padding: 6px 4px;
+      min-height: 0;
+    }
+    .live-card .pillar-main{
+      margin-bottom: 0;
+      min-height: 0;
+      gap: 2px;
+    }
+    .live-card .stem-only,
+    .live-card .branch-only{
+      font-size: 34px; /* 顶部实时八字缩小 */
+      font-weight: 700; /* 实时八字字重再细一点 */
+    }
+
+    .live-meta{
+      margin-top: 0;
+      padding: 0;
+      flex: 0 0 44%;
+      width: 44%;
+      max-width: 44%;
+      min-width: 0;
+      border: none; /* 隐藏临时定位边框 */
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.5;
+      text-align: center;
+      white-space: normal;
+      word-break: break-word;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .live-meta-line{
+      display: block;
+      width: auto;
+      text-align: center;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .live-meta-time{
+      font-size: 18px;
+      font-weight: 800;
+      color: #f5d68a;
+    }
+    .live-wear{
+      margin-top: 8px;
+      padding: 4px 2px 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+    .live-wear-title{
+      font-weight: 900;
+      color: #f5d68a;
+      margin-bottom: 2px;
+      text-align: left;
+      font-size: 14px;
+    }
+    .live-wear-line{
+      margin: 1px 0;
+      word-break: break-word;
+      text-align: left;
+    }
+    .live-wear-body{
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .live-wear-grid{
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 1.25fr 1fr 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .live-wear-col{
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .live-wear-col-main{
+      justify-content: stretch;
+    }
+    .live-wear-col-sub{
+      justify-content: space-between;
+    }
+    .live-wear-item{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .live-wear-item-main{
+      flex: 1;
+      justify-content: center;
+    }
+    .live-wear-swatch{
+      width: 100%;
+      height: 42px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.22);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-weight: 900;
+      font-size: 14px;
+      color: #0b1220;
+      text-shadow: 0 1px 1px rgba(255,255,255,0.15);
+    }
+    .live-wear-rate-in{
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+    .live-wear-item-main .live-wear-swatch{
+      height: 92px;
+      font-size: 18px;
+      border-radius: 10px;
+    }
+    .live-wear-item-main .live-wear-rate-in{ font-size: 14px; }
+    .live-wear-item[data-wx="金"] .live-wear-swatch{
+      color: #111827;
+    }
+    .live-wear-item[data-wx="水"] .live-wear-swatch{
+      color: #e5e7eb;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+    }
+    .live-wear-aside{
+      width: 40px;
+      flex: 0 0 40px;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: #f5d68a;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0;
+      gap: 4px;
+      border: none; /* 隐藏临时边框 */
+      border-radius: 0;
+      padding: 0 2px;
+    }
+    .live-wear-aside-line{
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      white-space: nowrap;
+      font-size: 17px;
+      line-height: 1;
+      margin: 0;
+      letter-spacing: -1.5px;
+    }
+    .axis {
+      display: flex;
+      flex-direction: column;
+      gap: 4px; /* 对齐柱子内部 stem/branch 的间距 */
+      /* 避免 axis 被撑宽，导致 border 左右空隙很大 */
+      min-width: 0;
+      justify-content: flex-start;
+      align-items: flex-start; /* 让 axis-box 贴内容宽度 */
+      padding: 0;
+      /* 让“天干/地支”起点对齐到柱子内部 stem/branch 的起点
+         估算：pillar padding-top(12) + pillar-title height(18) + margin-bottom(8) = 38px */
+      margin-top: 39px;
+    }
+    .axis-box {
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-bottom: none !important; /* 隐藏底部边框（强制） */
+      border-bottom-width: 0; /* 再保险：不显示底边宽度 */
+      border-bottom-color: transparent !important; /* 防止仍残留底边像素线 */
+      /* 避免 border-radius 底部两角仍残留弧线边框感 */
+      border-bottom-left-radius: 0 !important;
+      border-bottom-right-radius: 0 !important;
+      background: rgba(255,255,255,0.04);
+      color: #f5d68a;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      text-align: center;
+      /* 让边框高度与柱子天干/地支的行高一致，保证垂直居中对齐 */
+      height: 44px;
+      min-height: 0;
+    }
+    /* 两个格子之间那条“看起来像底部框”的分割线去掉 */
+    .axis-box + .axis-box {
+      border-top: none !important;
+    }
+    /* 只对第一个（天干）盒子的底边做极限强制隐藏 */
+    .axis-box:nth-child(1) {
+      /* 你现在看到上/左/右边仍在：这里把天干这个盒子的边框和底色先彻底关掉 */
+      border: none !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      /* 只保留文字本身 */
+    }
+    /* 地支（第二个盒子）底部框也彻底隐藏 */
+    .axis-box:nth-child(2) {
+      border: none !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+    }
+    @media (max-width: 860px) {
+      .pillars { flex-wrap: wrap; }
+    }
+    .pillar {
+      border-radius: 12px;
+      padding: 12px 12px 10px;
+      border: none;
+      background: transparent;
+      min-height: 130px;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .pillar-title {
+      font-weight: 800;
+      color: #f5d68a;
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      height: 18px;
+      line-height: 18px;
+      text-align: center;
+    }
+    .pillar-main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 8px;
+      width: 100%;
+      min-height: 86px;
+    }
+    .stem-only, .branch-only {
+      width: 100%;
+      text-align: center;
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      line-height: 1;
+    }
+    .relations {
+      font-size: 12.5px;
+      color: #e5e7eb;
+      opacity: 0.95;
+    }
+    .relations span { font-weight: 800; }
+    .msg {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(245,214,138,0.55);
+      color: #f5d68a;
+      background: rgba(245,214,138,0.35);
+      font-size: 13px;
+      display: none;
+    }
+
+    /* 日柱天干点击展开（10种情况：甲乙丙丁戊己庚辛壬癸） */
+    .day-stem-detail{
+      position: fixed;
+      z-index: 9999;
+      max-width: none; /* 宽度由 JS 动态控制 */
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px dashed rgba(245,214,138,0.55);
+      /* 填充色统一白色（不随五行变化）：透明度 80% */
+      background: rgba(255,255,255,0.8);
+      color: #f5d68a;
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: normal; /* 不保留换行（文案里可能带 \n） */
+      display: none;
+      pointer-events: auto;
+      word-break: break-word;
+    }
+    .live-day-branch-detail{
+      position: fixed;
+      z-index: 10001;
+      max-width: 320px;
+      width: min(320px, calc(100vw - 20px));
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px dashed rgba(245,214,138,0.55);
+      background: rgba(255,255,255,0.8);
+      color: #111827;
+      font-size: 13px;
+      line-height: 1.55;
+      text-align: left;
+      white-space: normal;
+      display: none;
+      pointer-events: auto;
+      word-break: break-word;
+    }
+    .live-day-branch-title{
+      font-weight: 900;
+    }
+    .day-stem{
+      cursor: pointer;
+    }
+
+    /* 月柱地支点击：年份克月柱的横向可滚动列表 */
+    .month-years-detail{
+      position: fixed;
+      z-index: 10000;
+      display: none;
+      max-width: 430px; /* 不超过手机最大宽度 */
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 0; /* 白色框不要圆角 */
+      border: none; /* 不要虚边，只保留黑色填充 */
+      background: #000000; /* 长条改为纯黑色 */
+      box-sizing: border-box;
+      pointer-events: auto;
+    }
+    .month-years-scroll{
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 4px 2px;
+      scroll-snap-type: x proximity;
+      position: relative;
+    }
+    .timeline-track{
+      position: absolute;
+      left: 0;
+      top: 15px; /* 再向下：让横线与圆点中心对齐更明显 */
+      height: 1px; /* 更细 */
+      background: rgba(255,255,255,0.9); /* 改成白线更清楚 */
+      z-index: 0;
+      pointer-events: none;
+    }
+    /* 横向滚动隐藏“可拖动进度条” */
+    .month-years-scroll::-webkit-scrollbar{
+      display: none;
+    }
+    .month-years-scroll{
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    .year-item{
+      flex: 0 0 auto;
+      width: 56px;
+      scroll-snap-align: center;
+      border-radius: 0;
+      background: transparent; /* 不要每一年的单独白底/框 */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      /* 给上方圆点/表情留空间：圆点在顶部，年份在下面 */
+      padding: 22px 4px 6px 4px;
+    }
+    .year-item .year-top{
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    .year-item .year-bottom{
+      font-size: 12px;
+      font-weight: 800;
+      opacity: 0.95;
+      margin-top: 4px;
+      white-space: nowrap;
+    }
+    .year-item .good-star{
+      display: none;
+    }
+    /* 时间线圆点：始终显示 */
+    .year-item .timeline-dot{
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: rgba(245,214,138,1);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
+    /* 好运表情：只在克的年份出现，放在圆点上方 */
+    .year-item .good-emoji{
+      position: absolute;
+      /* 往上挪一点点：紧贴圆点但不要重合 */
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      line-height: 1;
+      color: rgba(245,214,138,1);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+      user-select: none;
+    }
+    .year-item .bad-emoji{
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      line-height: 1;
+      color: rgba(245,214,138,1);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+      user-select: none;
+    }
+
+    /* 单行输入：年月日时辰 */
+    .time-row {
+      display: flex;
+      gap: 6px; /* 减少 年/月/日 与 时柱 之间的横向距离 */
+      align-items: flex-start;
+      flex-wrap: nowrap;
+      justify-content: center; /* 让年月日时整行整体居中 */
+    }
+    /* 覆盖页面中 time-row 行内的 margin-top:14px，减少与下方内容的空隙 */
+    .time-row {
+      margin-top: 30px !important; /* 距离改为 30px */
+    }
+    .time-grid{
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: nowrap;
+    }
+    @media (max-width: 860px) {
+      /* 不要上下排列：小屏也保持一行 */
+      .time-row { flex-wrap: nowrap; }
+    }
+    .time-group { display: flex; flex-direction: column; gap: 6px; align-items: center; white-space: nowrap; }
+    .time-group label { min-width: auto; font-size: 13px; color: #cbd5e1; line-height: 1; }
+    /* 输入框宽度收紧：减少 border 左右空隙 */
+    .time-group input[type="number"] { flex: 0 0 60px; min-width: 60px; }
+    /* 收紧“时”下拉宽度，减少文字到右侧箭头的空白 */
+    .time-group select { flex: 0 0 120px; min-width: 120px; }
+
+    /* 年/月/日：横排，但每个字段内部上下（label在上，input在下） */
+    #solarInputs, #lunarInputs {
+      display: flex;
+      flex-direction: row;
+      gap: 6px; /* 减少 年/月/日 之间的横向距离 */
+      align-items: center;
+      padding: 2px 0;
+    }
+    .time-field{
+      display: flex;
+      flex-direction: column; /* label 在上，input 在下 */
+      gap: 6px; /* label 与 input 的间距 */
+      align-items: center;
+    }
+    .time-field label{
+      /* 与排八字的“年柱/月柱/日柱/时柱”字样一致（pillar-title） */
+      font-size: 14px;
+      font-weight: 800;
+      color: #f5d68a !important;
+      height: 18px;
+      line-height: 18px;
+      min-width: auto; /* 避免全局 label min-width 影响居中观感 */
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .time-field input[type="number"]{
+      width: 60px;
+      min-width: 60px;
+      flex: none;
+      padding: 0; /* padding上下左右都为0 */
+      line-height: 24px; /* 与 height 一致，文字垂直严格居中 */
+      font-size: 14px;
+      font-weight: 800 !important; /* 与 pillar-title 一致 */
+      height: 24px; /* 让文字尽量贴近上下边框 */
+      border: none !important; /* 隐藏输入框边框 */
+      background: transparent !important; /* 只显示文字 */
+      border-radius: 0 !important;
+      color: #f5d68a !important; /* 与天干/年柱字色一致 */
+      touch-action: none; /* 防止浏览器抢占滑动手势 */
+    }
+    /* 月、日输入框再收窄一点（阳历/农历都生效） */
+    #solarMonth, #lunarMonth, #solarDay, #lunarDay{
+      width: 50px;
+      min-width: 50px;
+    }
+
+    /* 时的 select 不在 time-group 里了：需要单独统一尺寸/字体 */
+    .time-field select{
+      /* 时辰下拉内容较长：宽度按内容显示完全 */
+      width: 128px;
+      min-width: 128px;
+      flex: none;
+      padding: 0 !important;
+      line-height: 24px !important;
+      font-size: 14px !important;
+      font-weight: 800 !important; /* 与 pillar-title 一致 */
+      height: 24px !important;
+      text-align: center;
+      text-align-last: center;
+      white-space: nowrap;
+      box-sizing: border-box;
+      border: none !important; /* 隐藏下拉边框 */
+      background: transparent !important; /* 只显示文字 */
+      border-radius: 0 !important;
+      color: #f5d68a !important; /* 与天干/年柱字色一致 */
+      touch-action: none; /* 防止浏览器抢占滑动手势 */
+    }
+
+    .time-group select{
+      text-align: center;
+      text-align-last: center;
+      padding: 0 !important; /* padding上下左右都为0（强制覆盖浏览器默认） */
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      line-height: 24px !important; /* 与高度一致，避免文字偏下 */
+      font-size: 14px;
+      height: 24px; /* 让文字尽量贴近上下边框 */
+    }
+
+    /* 五行颜色类（与主文件同名） */
+    .wx-jin { color: #F5F5F5; }
+    .wx-mu { color: #228B22; }
+    .wx-shui { color: #4169E1; }
+    .wx-huo { color: #DC143C; }
+    .wx-tu { color: #F5D68A; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 style="display:none;">排八字</h1>
+
+    <div class="grid">
+      <div class="card no-frame">
+        <div class="card-title" style="display:none;"></div>
+
+        <div class="row">
+          <div class="radio-group" style="flex: 1;">
+            <div class="radio-item">
+              <input id="timeSourceSolar" type="radio" name="timeSource" value="solar" checked />
+              <label for="timeSourceSolar">阳历</label>
+            </div>
+            <div class="radio-item">
+              <input id="timeSourceLunar" type="radio" name="timeSource" value="lunar" />
+              <label for="timeSourceLunar">农历</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="time-row" style="margin-top:14px;">
+          <!-- 第一行：年/ 月/ 日/ 时（label） 第二行：对应输入框/下拉（控件） -->
+          <div class="time-grid">
+            <div class="time-field">
+              <label>年</label>
+              <input type="number" id="solarYear" min="1900" max="2100" placeholder="例如 2026" value="2026"/>
+              <input type="number" id="lunarYear" min="1900" max="2100" value="2026" style="display:none;"/>
+            </div>
+
+            <div class="time-field">
+              <label>月</label>
+              <input type="number" id="solarMonth" min="1" max="12" placeholder="例如 3" value="3"/>
+              <input type="number" id="lunarMonth" min="1" max="12" value="2" style="display:none;"/>
+            </div>
+
+            <div class="time-field">
+              <label>日</label>
+              <input type="number" id="solarDay" min="1" max="31" placeholder="例如 20" value="20"/>
+              <input type="number" id="lunarDay" min="1" max="30" value="1" style="display:none;"/>
+            </div>
+
+            <div class="time-field">
+              <label>时</label>
+              <select id="shiSelect"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="hint" style="display:none;"></div>
+        <div class="msg" id="msg"></div>
+      </div>
+
+      <div class="card live-card no-frame">
+        <div class="card-title" style="display:none;">结果（年/月/日/时）</div>
+        <div class="result-row">
+          <div class="axis">
+            <div class="axis-box">天干</div>
+            <div class="axis-box">地支</div>
+          </div>
+          <div class="pillars" id="pillars"></div>
+          <div id="live-meta" class="live-meta"></div>
+        </div>
+        <div id="live-wear" class="live-wear"></div>
+      </div>
+
+      <div id="day-stem-detail" class="day-stem-detail" style="display:none;"></div>
+      <div id="month-years-detail" class="month-years-detail" style="display:none;"></div>
+      <div id="live-day-branch-detail" class="live-day-branch-detail" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    // -------------------------
+    // 基础常量：干支
+    // -------------------------
+    const stems = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+    const branches = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+
+    // -------------------------
+    // 五行映射（用于颜色/关系）
+    // -------------------------
+    // 与 CSS 类名 wx-mu / wx-huo / wx-tu / wx-jin / wx-shui 对齐
+    const stemWxByIndex = ['mu','mu','huo','huo','tu','tu','jin','jin','shui','shui'];
+    const branchWxByIndex = ['shui','tu','mu','mu','tu','huo','huo','tu','jin','jin','tu','shui'];
+
+    const stemWuxing = stemWxByIndex;
+    const branchWuxing = branchWxByIndex;
+
+    function getWuxingColorClass(wuxing) {
+      const colorMap = { '木':'wx-mu', '火':'wx-huo', '土':'wx-tu', '金':'wx-jin', '水':'wx-shui' };
+      return colorMap[wuxing];
+    }
+    function getStemWuxing(stem) {
+      const wuxingMap = { '甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水' };
+      return wuxingMap[stem];
+    }
+    function getBranchWuxing(branch) {
+      const wuxingMap = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' };
+      return wuxingMap[branch];
+    }
+
+    function getWuxingClass(stemIndex, branchIndex) {
+      return { stemClass: `wx-${stemWxByIndex[stemIndex]}`, branchClass: `wx-${branchWxByIndex[branchIndex]}` };
+    }
+
+    // -------------------------
+    // 关系文本生成（不含旬空）
+    // -------------------------
+    const branchConflicts = { '子':'午','丑':'未','寅':'申','卯':'酉','辰':'戌','巳':'亥','午':'子','未':'丑','申':'寅','酉':'卯','戌':'辰','亥':'巳' };
+    const branchCombinations = { '子':'丑','寅':'亥','卯':'戌','辰':'酉','巳':'申','午':'未','丑':'子','亥':'寅','戌':'卯','酉':'辰','申':'巳','未':'午' };
+    const wuxingRelations = {
+      '木': { '生': '火', '克': '土' },
+      '火': { '生': '土', '克': '金' },
+      '土': { '生': '金', '克': '水' },
+      '金': { '生': '水', '克': '木' },
+      '水': { '生': '木', '克': '火' }
+    };
+
+    function getBranchRelations(branch) {
+      const relations = [];
+      const wuxing = getBranchWuxing(branch);
+
+      if (branchConflicts[branch]) relations.push(`${branch}${branchConflicts[branch]}冲`);
+      if (branchCombinations[branch]) relations.push(`${branch}${branchCombinations[branch]}合`);
+
+      if (wuxing && wuxingRelations[wuxing]) {
+        const rel = wuxingRelations[wuxing];
+        relations.push(`${wuxing}生${rel.生}`);
+        relations.push(`${wuxing}克${rel.克}`);
+      }
+      return relations;
+    }
+
+    function generateRelationsHTML(relations) {
+      if (!relations || relations.length === 0) return '';
+      return relations.map(rel => {
+        let html = rel;
+        // 天干颜色
+        stems.forEach(stem => {
+          const wuxing = getStemWuxing(stem);
+          const colorClass = getWuxingColorClass(wuxing);
+          html = html.replace(new RegExp(stem, 'g'), `<span class="${colorClass}">${stem}</span>`);
+        });
+        // 地支颜色
+        branches.forEach(branch => {
+          const wuxing = getBranchWuxing(branch);
+          const colorClass = getWuxingColorClass(wuxing);
+          html = html.replace(new RegExp(branch, 'g'), `<span class="${colorClass}">${branch}</span>`);
+        });
+        // 五行颜色
+        ['木','火','土','金','水'].forEach(wx => {
+          const colorClass = getWuxingColorClass(wx);
+          html = html.replace(new RegExp(wx, 'g'), `<span class="${colorClass}">${wx}</span>`);
+        });
+        return html;
+      }).join('<br>');
+    }
+
+    // -------------------------
+    // 农历转阳历（复用主文件逻辑）
+    // -------------------------
+    const lunarInfo = [
+      0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+      0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+      0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+      0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+      0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+      0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,
+      0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+      0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,
+      0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+      0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x05ac0,0x0ab60,0x096d5,0x092e0,
+      0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+      0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+      0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+      0x05aa0,0x076a3,0x096d0,0x04bd7,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+      0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0
+    ];
+
+    function lYearDays(y){
+      let sum = 348;
+      for(let i=0x8000;i>0x8;i>>=1) sum += (lunarInfo[y-1900] & i)?1:0;
+      return sum + leapDays(y);
+    }
+    function leapMonth(y){ return lunarInfo[y-1900] & 0xf; }
+    function leapDays(y){ if(leapMonth(y)) return (lunarInfo[y-1900] & 0x10000)?30:29; return 0; }
+    function monthDays(y,m){ return (lunarInfo[y-1900] & (0x10000>>m))?30:29; }
+
+    function lunarToSolar(lYear, lMonth, lDay) {
+      const baseMs = Date.UTC(1900,0,30,16,0,0); // 1900-01-31 00:00 +08:00
+      let offset = 0;
+      // 用于计算偏移天数的绝对时间基准（按与主文件一致的理解）
+      // 主文件：offset = Math.floor((dCN.getTime() - baseMs)/86400000)
+      // 这里直接按农历→阳历主文件方式累加天数
+      for(let y=1900; y<lYear; y++){
+        offset += lYearDays(y);
+      }
+      const leap = leapMonth(lYear);
+      for(let m=1; m<lMonth; m++){
+        if(leap>0 && m === leap+1){
+          offset += leapDays(lYear);
+        }
+        offset += monthDays(lYear, m);
+      }
+      offset += lDay - 1;
+
+      const solarMs = baseMs + offset * 86400000;
+      return new Date(solarMs);
+    }
+
+    // -------------------------
+    // 阳历 -> 农历（用于“实时排盘”显示农历日期）
+    // 说明：不处理闰月特殊显示（若遇闰月，可能显示为对应非闰月的等价日期）
+    // -------------------------
+    function solarToLunar(solarDate) {
+      const target = new Date(solarDate.getFullYear(), solarDate.getMonth(), solarDate.getDate());
+      const tY = target.getFullYear();
+      const tM = target.getMonth();
+      const tD = target.getDate();
+
+      const startY = Math.max(1900, tY - 1);
+      const endY = Math.min(2100, tY + 1);
+
+      for (let y = startY; y <= endY; y++) {
+        for (let m = 1; m <= 12; m++) {
+          const maxD = monthDays(y, m);
+          for (let d = 1; d <= maxD; d++) {
+            const s = lunarToSolar(y, m, d);
+            if (s.getFullYear() === tY && s.getMonth() === tM && s.getDate() === tD) {
+              return { lYear: y, lMonth: m, lDay: d };
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    const cnNum = ['零','一','二','三','四','五','六','七','八','九'];
+    const cnMonthMap = {
+      1: '正', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六',
+      7: '七', 8: '八', 9: '九', 10: '十', 11: '冬', 12: '腊'
+    };
+
+    function lunarMonthToCn(m) {
+      return cnMonthMap[m] || String(m);
+    }
+
+    function lunarDayToCn(d) {
+      if (d >= 1 && d <= 9) return `初${cnNum[d]}`;
+      if (d === 10) return '初十';
+      if (d >= 11 && d <= 19) return `十${cnNum[d - 10]}`;
+      if (d === 20) return '二十';
+      if (d >= 21 && d <= 29) return `廿${cnNum[d - 20]}`;
+      if (d === 30) return '三十';
+      return String(d);
+    }
+
+    // -------------------------
+    // 节气（用于阳历月柱）
+    // -------------------------
+    const sTermInfo=[0,21208,42467,63836,85337,107014,128867,150921,173149,195551,218072,240693,263343,285989,308563,331033,353350,375494,397447,419210,440795,462224,483532,504758];
+    const termNames=['小寒','大寒','立春','雨水','惊蛰','春分','清明','谷雨','立夏','小满','芒种','夏至','小暑','大暑','立秋','处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至'];
+
+    function sTerm(y,n){
+      const ms = 31556925974.7*(y-1900) + sTermInfo[n]*60000 + Date.UTC(1900,0,6,2,5);
+      return new Date(ms);
+    }
+    function findCurrentTermCN(dCN){
+      const y = dCN.getFullYear();
+      let prev=null, next=null;
+      for(let i=0;i<24;i++){
+        const t = sTerm(y,i);
+        if(t<=dCN) prev={index:i, time:t};
+        else if(!next) next={index:i, time:t};
+      }
+      if(!prev) prev={ index:23, time: sTerm(y-1,23) };
+      if(!next) next={ index:0, time: sTerm(y+1,0) };
+      return { prev, next, name: termNames[prev.index] };
+    }
+
+    // -------------------------
+    // 干支计算（复用主文件逻辑）
+    // -------------------------
+    function getGanZhiYear(dCN){
+      const y = dCN.getFullYear();
+      const liChun = sTerm(y, 2);
+      const year4 = (dCN >= liChun) ? y : (y - 1);
+      const baseYear = 1984;
+      const span = year4 - baseYear;
+      const tgIndex = (span % 10 + 10) % 10;
+      const dzIndex = (span % 12 + 12) % 12;
+      return { tgIndex, dzIndex, year: year4 };
+    }
+
+    function getGanZhiMonth(dCN, yearTgIndex){
+      const cur = findCurrentTermCN(dCN).prev.index;
+      let monthIndex;
+      if(cur === 2) monthIndex = 0;
+      else if(cur === 4) monthIndex = 1;
+      else if(cur === 6) monthIndex = 2;
+      else if(cur === 8) monthIndex = 3;
+      else if(cur === 10) monthIndex = 4;
+      else if(cur === 12) monthIndex = 5;
+      else if(cur === 14) monthIndex = 6;
+      else if(cur === 16) monthIndex = 7;
+      else if(cur === 18) monthIndex = 8;
+      else if(cur === 20) monthIndex = 9;
+      else if(cur === 22) monthIndex = 10;
+      else if(cur === 0) monthIndex = 11;
+      else monthIndex = Math.floor(((cur - 2 + 24) % 24) / 2);
+
+      const dzIndex = (2 + monthIndex) % 12;
+
+      let firstMonthStem;
+      if([0,5].includes(yearTgIndex)) firstMonthStem = 2;
+      else if([1,6].includes(yearTgIndex)) firstMonthStem = 4;
+      else if([2,7].includes(yearTgIndex)) firstMonthStem = 6;
+      else if([3,8].includes(yearTgIndex)) firstMonthStem = 8;
+      else firstMonthStem = 0;
+
+      const tgIndex = (firstMonthStem + monthIndex) % 10;
+      return { tgIndex, dzIndex, monthIndex };
+    }
+
+    function getGanZhiDay(dCN){
+      const baseYear = 1902, baseMonth = 2, baseDay = 10;
+      function daysBetween(date1, date2) {
+        const utc1 = Date.UTC(date1.getFullYear(), date1.getMonth(), date1.getDate());
+        const utc2 = Date.UTC(date2.getFullYear(), date2.getMonth(), date2.getDate());
+        return Math.floor((utc2 - utc1) / 86400000);
+      }
+      const base = new Date(baseYear, baseMonth - 1, baseDay);
+      const offset = daysBetween(base, dCN);
+      let cycIndex = (1 + offset) % 60;
+      if (cycIndex === 0) cycIndex = 60;
+      const tgIndex = (cycIndex - 1) % 10;
+      const dzIndex = (cycIndex - 1) % 12;
+      return { tgIndex, dzIndex, cycIndex };
+    }
+
+    function getGanZhiHour(dCN, dayTgIndex){
+      let h = dCN.getHours();
+      let branchIndex;
+      if (h === 23) branchIndex = 0;
+      else branchIndex = Math.floor((h + 1) / 2) % 12;
+      const tgIndex = (dayTgIndex * 2 + branchIndex) % 10;
+      return { tgIndex, dzIndex: branchIndex };
+    }
+
+    // 农历简化年/月干支（按主文件）
+    function getGanZhiYearFromLunar(lYear) {
+      const baseYear = 1984;
+      const span = lYear - baseYear;
+      const tgIndex = (span % 10 + 10) % 10;
+      const dzIndex = (span % 12 + 12) % 12;
+      return { tgIndex, dzIndex };
+    }
+    function getGanZhiMonthFromLunar(lYear, lMonth) {
+      const yearGZ = getGanZhiYearFromLunar(lYear);
+      const monthIndex = lMonth - 1;
+
+      let firstMonthStem;
+      if([0,5].includes(yearGZ.tgIndex)) firstMonthStem = 2;
+      else if([1,6].includes(yearGZ.tgIndex)) firstMonthStem = 4;
+      else if([2,7].includes(yearGZ.tgIndex)) firstMonthStem = 6;
+      else if([3,8].includes(yearGZ.tgIndex)) firstMonthStem = 8;
+      else firstMonthStem = 0;
+
+      const tgIndex = (firstMonthStem + monthIndex) % 10;
+      const dzIndex = (2 + monthIndex) % 12;
+      return { tgIndex, dzIndex, monthIndex };
+    }
+
+    // -------------------------
+    // 十二时辰选项（与主文件一致）
+    // -------------------------
+    const shiList = [
+      { name:'子', range:'23:00–01:00', start:23, end:1 },
+      { name:'丑', range:'01:00–03:00', start:1, end:3 },
+      { name:'寅', range:'03:00–05:00', start:3, end:5 },
+      { name:'卯', range:'05:00–07:00', start:5, end:7 },
+      { name:'辰', range:'07:00–09:00', start:7, end:9 },
+      { name:'巳', range:'09:00–11:00', start:9, end:11 },
+      { name:'午', range:'11:00–13:00', start:11, end:13 },
+      { name:'未', range:'13:00–15:00', start:13, end:15 },
+      { name:'申', range:'15:00–17:00', start:15, end:17 },
+      { name:'酉', range:'17:00–19:00', start:17, end:19 },
+      { name:'戌', range:'19:00–21:00', start:19, end:21 },
+      { name:'亥', range:'21:00–23:00', start:21, end:23 }
+    ];
+
+    const shiSelect = document.getElementById('shiSelect');
+    shiList.forEach((s, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `${s.name}(${s.range})`;
+      shiSelect.appendChild(opt);
+    });
+    // 默认：如果用户不做任何输入，显示“当前时间”的八字
+    function currentShiIndex(h) {
+      for (let i = 0; i < shiList.length; i++) {
+        const s = shiList[i];
+        if (s.start < s.end) {
+          if (h >= s.start && h < s.end) return i;
+        } else {
+          // 子时 23:00-01:00 这种跨日区间
+          if (h >= s.start || h < s.end) return i;
+        }
+      }
+      return 0;
+    }
+
+    const now = new Date();
+    document.getElementById('solarYear').value = now.getFullYear();
+    document.getElementById('solarMonth').value = now.getMonth() + 1;
+    document.getElementById('solarDay').value = now.getDate();
+    shiSelect.value = currentShiIndex(now.getHours());
+
+    // -------------------------
+    // 时辰：改为“上下滚动选择”
+    // -------------------------
+    const shiWheelThrottleMs = 160;
+    let shiLastWheelTs = 0;
+
+    function applyShiDir(isWheelDown) {
+      const cur = parseInt(shiSelect.value);
+      const next = isWheelDown ? cur - 1 : cur + 1;
+      const clamped = Math.max(0, Math.min(shiList.length - 1, next));
+      if (clamped !== cur) {
+        shiSelect.value = clamped;
+        renderLiveNow(); // 时柱与顶部显示立即联动
+      }
+    }
+
+    shiSelect.addEventListener('wheel', (e) => {
+      e.preventDefault(); // 防止页面滚动
+      const now = Date.now();
+      if (now - shiLastWheelTs < shiWheelThrottleMs) return;
+      shiLastWheelTs = now;
+      applyShiDir(e.deltaY > 0);
+      // 不触发 calc：保持原交互（点“排八字”才更新结果）
+    }, { passive: false });
+
+    // 触屏拖拽：按距离逐步切换
+    let shiDragging = false;
+    let shiLastY = 0;
+    const shiDragStepPx = 18;
+    shiSelect.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+      shiDragging = true;
+      shiLastY = e.clientY;
+      try { shiSelect.setPointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault();
+    }, { passive: false });
+
+    shiSelect.addEventListener('pointermove', (e) => {
+      if (!shiDragging) return;
+      const dy = e.clientY - shiLastY;
+      if (Math.abs(dy) < shiDragStepPx) return;
+      applyShiDir(dy > 0);
+      shiLastY = e.clientY;
+    }, { passive: false });
+
+    const stopShiDrag = () => { shiDragging = false; };
+    shiSelect.addEventListener('pointerup', stopShiDrag);
+    shiSelect.addEventListener('pointercancel', stopShiDrag);
+
+    // 禁止点开原生下拉（改用滚轮）
+    shiSelect.addEventListener('mousedown', (e) => { e.preventDefault(); });
+    shiSelect.addEventListener('click', (e) => { e.preventDefault(); });
+    shiSelect.addEventListener('change', () => { renderLiveNow(); });
+
+    // -------------------------
+    // UI逻辑
+    // -------------------------
+    const timeSourceSolar = document.getElementById('timeSourceSolar');
+    const timeSourceLunar = document.getElementById('timeSourceLunar');
+    const solarYearInput = document.getElementById('solarYear');
+    const solarMonthInput = document.getElementById('solarMonth');
+    const solarDayInput = document.getElementById('solarDay');
+    const lunarYearInput = document.getElementById('lunarYear');
+    const lunarMonthInput = document.getElementById('lunarMonth');
+    const lunarDayInput = document.getElementById('lunarDay');
+    const btnCalc = document.getElementById('btnCalc');
+    const pillarsEl = document.getElementById('pillars');
+    const pillars2El = document.getElementById('pillars2');
+    const pillarsEls = [pillarsEl, pillars2El].filter(Boolean);
+    const msgEl = document.getElementById('msg');
+    const liveMetaEl = document.getElementById('live-meta');
+    const liveWearEl = document.getElementById('live-wear');
+    const dayStemDetailEl = document.getElementById('day-stem-detail');
+    const liveDayBranchDetailEl = document.getElementById('live-day-branch-detail');
+
+    // 日柱天干：10种情况（按你提供的 甲乙丙丁戊己庚辛壬癸 文案）
+    const dayStemDetailMap = {
+      '甲': `【甲木人】向上的，直的，像大树。\n\n性格耿直，不屈服，要强。\n不喜欢占人便宜，也不喜欢弯腰求人，硬气，容易得罪\n人。\n不爱耍心眼儿，讨厌虚伪、欺瞒、和冤枉。`,
+      '乙': `【乙木人】盘旋向上，像攀附在树上的藤蔓。\n\n外表柔弱，但内心固执。\n柔韧性强，善于随机应变。\n做事懂得技巧，善于利用人脉。\n心软，容易经不起诱惑。`,
+      '丙': `【两火人】向外发散，像太阳。\n\n谦让、热情，慷慨，开朗乐观。\n性子急，脾气暴躁，没心机，善变，缺乏耐心和毅力。\n容易得罪人。`,
+      '丁': `【丁火人】闪烁的，忽明忽暗的，像星星。\n\n外在柔弱，内心热情、有上进心。\n捉摸不透，双重性格，内心和外在表现不一样，不喜欢\n被别人揭穿。\n第六感强，内心敏感，多疑，容易精神内耗，慢热型，\n对待感情容易忽冷忽热。\n灵性强，创新能力强。`,
+      '戊': `【戊土人】容纳，包容，像容器。也代表高山的石头。\n\n包容性强，沉默厚重，看重诚信，守承诺，靠谱。\n外硬内软，不善花言巧语。\n居安思危，不善变通。`,
+      '己': `【己土人】弯曲，比如管道、蛇。也代表田园的土，能\n种庄稼。\n\n大度，包容。\n外表柔弱，内心固执。\n内在多疑，想要的多。\n`,
+      '庚': `【庚金人】锐利，比如刀剑等武器。\n\n刚硬，性格倔强，不服就干。\n好面子，好争辩，很难认输，棱角尖锐，缺乏圆通。\n性情中人，爱憎分明，生人勿近。\n废铁容易生锈，他们不喜欢无所事事。\n仗义，讲义气。`,
+      '辛': `【辛金人】软金属，光泽感，比如首饰，以及其他漂亮\n的东西。\n\n容易外在漂亮或者有才华，儒雅、细腻。\n头脑灵活，会变通，有韧性，自尊心强。\n现实主义，经不起打击。`,
+      '壬': `【壬水人】江河之水，奔流不息。\n\n有冲劲，不安分，喜欢新鲜事物，酒脱，放浪形骸。\n向往自由，不容易被管教。喜欢刺激冒险。\n相对于情感，更注重利益和现实，理智。\n水遇方则方，遇圆则圆，变通性强，灵活，目标大，野\n心强，容易有大成就。\n大智若愚，外表看似柔和，骨子里极度倔强。\n藏不住心事或秘密，粗枝大叶。`,
+      '癸': `【癸水人】静止的水，也代表雨露之水。\n\n温柔，能屈能伸，足智多谋。\n心思细腻，内敛。`
+    };
+
+    let dayDetailOpen = false;
+    let currentDayStemChar = null;
+    let currentDayRootPillarsEl = null;
+
+    function updateDayStemDetail(stemChar) {
+      let text = dayStemDetailMap[stemChar] || '';
+      // 你复制文案时可能带了无意义换行：这里“完全去掉换行”，避免弹出框出现分行
+      text = text.replace(/\r\n/g, '\n');
+      text = text.replace(/\n/g, ''); // 完全移除所有换行
+      text = text.replace(/\s{2,}/g, ' ');
+      text = text.trim();
+      dayStemDetailEl.textContent = text;
+    }
+
+    function hexToRgb(hex) {
+      const normalized = String(hex).replace('#', '');
+      const bigint = parseInt(normalized.length === 3
+        ? normalized.split('').map(c => c + c).join('')
+        : normalized, 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return { r, g, b };
+    }
+
+    function applyDayStemColor(stemChar) {
+      const wuxing = getStemWuxing(stemChar); // '木'/'火'/'土'/'金'/'水'
+      const colorHexMap = { '木': '#228B22', '火': '#DC143C', '土': '#F5D68A', '金': '#F5F5F5', '水': '#4169E1' };
+      const hex = colorHexMap[wuxing] || '#f5d68a';
+      const { r, g, b } = hexToRgb(hex);
+
+      dayStemDetailEl.style.color = hex;
+      dayStemDetailEl.style.borderColor = `rgba(${r},${g},${b},0.6)`;
+      // 填充色统一白色（不随五行变化）
+      dayStemDetailEl.style.background = `rgba(255,255,255,0.8)`;
+    }
+
+    function showDayStemDetailAt(stemChar, stemEl) {
+      updateDayStemDetail(stemChar);
+      applyDayStemColor(stemChar);
+      dayStemDetailEl.style.display = 'block';
+
+      // fixed 定位到视口：宽度限制 + 居中对齐
+      const rect = stemEl.getBoundingClientRect();
+      // 你要的定位：弹出框左侧对齐“月柱中点”，右侧对齐“时柱中点”
+      const pillarsRoot = stemEl.closest('.pillars') || pillarsEl;
+      const pillars = pillarsRoot.querySelectorAll('.pillar');
+      const monthRect = pillars[1]?.getBoundingClientRect();
+      const hourRect = pillars[3]?.getBoundingClientRect();
+      if (monthRect && hourRect) {
+        const monthCenter = monthRect.left + monthRect.width / 2;
+        const hourCenter = hourRect.left + hourRect.width / 2;
+        const desiredLeft = Math.min(monthCenter, hourCenter);
+        const desiredRight = Math.max(monthCenter, hourCenter);
+        const desiredWidth = Math.max(0, desiredRight - desiredLeft);
+        let finalW = Math.min(desiredWidth, window.innerWidth - 20, 430);
+        // 顶部实时八字（左侧区域较窄）时，弹框宽度给一个更宽的下限
+        if (pillarsRoot === pillarsEl) {
+          finalW = Math.max(finalW, Math.min(window.innerWidth - 20, 320));
+        }
+        let left = desiredLeft;
+        // 顶部实时八字：改为页面水平居中
+        if (pillarsRoot === pillarsEl) {
+          left = (window.innerWidth - finalW) / 2;
+        }
+        // 防止超出屏幕边界：在不超过最大宽度的前提下，整体平移
+        if (left < 10) left = 10;
+        if (left + finalW > window.innerWidth - 10) left = window.innerWidth - 10 - finalW;
+        dayStemDetailEl.style.width = `${finalW}px`;
+        dayStemDetailEl.style.left = `${left}px`;
+      }
+
+      const elRect = dayStemDetailEl.getBoundingClientRect();
+
+      // 顶部实时八字：放在“日柱天干”下方；其余保持原先上对齐
+      let top = (pillarsRoot === pillarsEl) ? (rect.bottom + 6) : rect.top;
+
+      if (top + elRect.height > window.innerHeight - 10) {
+        top = window.innerHeight - elRect.height - 10;
+      }
+      if (top < 10) top = 10;
+
+      dayStemDetailEl.style.top = `${top}px`;
+    }
+
+    // 点击日柱天干（甲乙丙丁戊己庚辛壬癸）展开/收起
+    pillarsEls.forEach((rootPillars) => {
+      rootPillars.addEventListener('click', (e) => {
+        const stemEl = e.target.closest('.day-stem');
+        if (!stemEl) return;
+
+        const stemChar = stemEl.getAttribute('data-stem');
+        if (!stemChar) return;
+
+        if (dayDetailOpen && currentDayStemChar === stemChar) {
+          dayStemDetailEl.style.display = 'none';
+          dayDetailOpen = false;
+          currentDayStemChar = null;
+          currentDayRootPillarsEl = null;
+          return;
+        }
+
+        showDayStemDetailAt(stemChar, stemEl);
+        dayDetailOpen = true;
+        currentDayStemChar = stemChar;
+        currentDayRootPillarsEl = rootPillars;
+      });
+    });
+
+    // 点击任意非“日柱天干天干字”区域，弹出框消失
+    document.addEventListener('click', (e) => {
+      if (!dayDetailOpen) return;
+      const clickedStem = e.target.closest('.day-stem');
+      if (clickedStem) return;
+
+      dayStemDetailEl.style.display = 'none';
+      dayDetailOpen = false;
+      currentDayStemChar = null;
+      currentDayRootPillarsEl = null;
+    });
+
+    // -------------------------
+    // 月柱地支点击：显示“克月柱地支的年份列表”
+    // -------------------------
+    const monthYearsDetailEl = document.getElementById('month-years-detail');
+    let monthYearsOpen = false;
+    let currentMonthBranchChar = null;
+    let currentMonthRootPillarsEl = null;
+
+    const keMap = { '木': '土', '土': '水', '水': '火', '火': '金', '金': '木' };
+    const shengMap = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' };
+    const wuxingHexMap = { '木': '#228B22', '火': '#DC143C', '土': '#F5D68A', '金': '#F5F5F5', '水': '#4169E1' };
+
+    function getWuxingHexByBranch(branchChar) {
+      const wuxing = getBranchWuxing(branchChar);
+      return wuxingHexMap[wuxing] || '#f5d68a';
+    }
+
+    function getShengSource(targetWx) {
+      return Object.keys(shengMap).find(k => shengMap[k] === targetWx) || '';
+    }
+
+    function getKeSource(targetWx) {
+      return Object.keys(keMap).find(k => keMap[k] === targetWx) || '';
+    }
+
+    function getYearBranchChar(yearNum) {
+      // 以该年立春之后的时刻作为“该年地支”的代表
+      const liChun = sTerm(yearNum, 2);
+      const d = new Date(liChun.getTime() + 1000);
+      const yGZ = getGanZhiYear(d);
+      return branches[yGZ.dzIndex];
+    }
+
+    function buildMonthYearsContent(monthBranchChar) {
+      const centerGZ = getGanZhiYear(new Date()); // year4（立春为界）
+      const centerYear = centerGZ.year;
+      const start = centerYear - 60;
+      const end = centerYear + 60;
+
+      const monthWuxing = getBranchWuxing(monthBranchChar);
+
+      const items = [];
+      for (let y = start; y <= end; y++) {
+        const branchChar = getYearBranchChar(y);
+        const yearWuxing = getBranchWuxing(branchChar);
+        const isGood = keMap[yearWuxing] === monthWuxing; // 克
+        const isSheng = shengMap[yearWuxing] === monthWuxing; // 生
+
+        const hex = wuxingHexMap[yearWuxing] || '#f5d68a';
+        const emoji = isGood
+          ? `<div class="good-emoji">🙂</div>`
+          : (isSheng ? `<div class="bad-emoji">☹️</div>` : '');
+
+        items.push(`
+          <div class="year-item" data-year="${y}">
+            ${emoji}
+            <div class="timeline-dot"></div>
+            <div class="year-top" style="color:${hex};">${y}</div>
+            <div class="year-bottom" style="color:${hex};">${branchChar}</div>
+          </div>
+        `);
+      }
+
+      return `<div class="month-years-scroll"><div class="timeline-track"></div>${items.join('')}</div>`;
+    }
+
+    function showMonthYearsDetailAt(monthBranchChar, rootPillarsEl = pillarsEl, options = {}) {
+      const { preserveScroll = false } = options;
+      const pillars = rootPillarsEl.querySelectorAll('.pillar');
+      const monthPillar = pillars[1];
+      const hourPillar = pillars[3];
+      if (!monthPillar || !hourPillar) return;
+
+      // 记录当前滚动位置（用于保持用户手动滑动后的停留位置）
+      const prevScrollEl = monthYearsDetailEl.querySelector('.month-years-scroll');
+      const prevScrollLeft = prevScrollEl ? prevScrollEl.scrollLeft : 0;
+
+      // 内容先渲染
+      monthYearsDetailEl.innerHTML = buildMonthYearsContent(monthBranchChar);
+      monthYearsDetailEl.style.display = 'block';
+
+      // “当前年份”（以立春为界）
+      const centerYear = getGanZhiYear(new Date()).year;
+
+      // 默认滚动到“当前实际年份”所在的位置；若要求保持滚动，则保留用户当前位置
+      const scrollEl = monthYearsDetailEl.querySelector('.month-years-scroll');
+      const centerYearElInScroll = scrollEl?.querySelector(`.year-item[data-year="${centerYear}"]`);
+      if (scrollEl) {
+        if (preserveScroll) {
+          const maxLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+          scrollEl.scrollLeft = Math.min(maxLeft, Math.max(0, prevScrollLeft));
+        } else if (centerYearElInScroll) {
+          const left = centerYearElInScroll.offsetLeft - (scrollEl.clientWidth / 2) + (centerYearElInScroll.clientWidth / 2);
+          scrollEl.scrollLeft = Math.max(0, left);
+        }
+      }
+
+      // 让时间轴横线覆盖整个可滚动宽度
+      const trackEl = monthYearsDetailEl.querySelector('.timeline-track');
+      if (scrollEl && trackEl) {
+        trackEl.style.width = `${scrollEl.scrollWidth}px`;
+      }
+
+      const monthRect = monthPillar.getBoundingClientRect();
+      const hourRect = hourPillar.getBoundingClientRect();
+      const monthCenter = monthRect.left + monthRect.width / 2;
+      const hourCenter = hourRect.left + hourRect.width / 2;
+
+      // 限制宽度：不超过 430px（手机端）
+      const finalW = Math.min(window.innerWidth - 20, 430);
+      const left = Math.max(10, (window.innerWidth - finalW) / 2);
+      monthYearsDetailEl.style.width = `${finalW}px`;
+      monthYearsDetailEl.style.left = `${left}px`;
+
+      // 放在“月柱地支”下方，若超出则翻到上方
+      const elRect = monthYearsDetailEl.getBoundingClientRect();
+      let top = monthRect.bottom + 2; /* 下方贴近，避免遮住月柱地支 */
+      const wasBelow = true;
+      if (top + elRect.height > window.innerHeight - 10) {
+        top = monthRect.top - elRect.height - 8;
+        wasBelow = false;
+      }
+      if (top < 10) top = 10;
+      monthYearsDetailEl.style.top = `${top}px`;
+
+      // 初始垂直对齐：让“当前年份那一格”与月柱地支上下居中对齐
+      const yearEl = monthYearsDetailEl.querySelector(`.year-item[data-year="${centerYear}"]`);
+      if (yearEl) {
+        const monthCenterY = monthRect.top + monthRect.height / 2;
+        const yearRect = yearEl.getBoundingClientRect();
+        const yearCenterY = yearRect.top + yearRect.height / 2;
+        const deltaY = monthCenterY - yearCenterY;
+
+        let newTop = top + deltaY;
+        const height = monthYearsDetailEl.getBoundingClientRect().height;
+        if (newTop < 10) newTop = 10;
+        // 仅在“下方摆放”时，确保不会上移遮住月柱地支
+        if (wasBelow && newTop < monthRect.bottom + 1) newTop = monthRect.bottom + 1;
+        if (newTop + height > window.innerHeight - 10) newTop = window.innerHeight - 10 - height;
+        monthYearsDetailEl.style.top = `${newTop}px`;
+      }
+    }
+
+    // 只处理“月柱地支”点击
+    pillarsEls.forEach((rootPillars) => {
+      rootPillars.addEventListener('click', (e) => {
+        const branchEl = e.target.closest('.month-branch');
+        if (!branchEl) return;
+
+        const branchChar = branchEl.getAttribute('data-branch');
+        if (!branchChar) return;
+
+        if (monthYearsOpen && currentMonthBranchChar === branchChar) {
+          monthYearsDetailEl.style.display = 'none';
+          monthYearsOpen = false;
+          currentMonthBranchChar = null;
+          currentMonthRootPillarsEl = null;
+          return;
+        }
+
+        // 打开时，关闭日柱弹出（避免两个弹层重叠太乱）
+        dayStemDetailEl.style.display = 'none';
+        dayDetailOpen = false;
+        currentDayStemChar = null;
+
+        currentMonthBranchChar = branchChar;
+        monthYearsOpen = true;
+        currentMonthRootPillarsEl = rootPillars;
+        showMonthYearsDetailAt(branchChar, rootPillars);
+      });
+    });
+
+    // 点击弹出框以外，关闭
+    document.addEventListener('click', (e) => {
+      if (!monthYearsOpen) return;
+      const inside = e.target.closest('#month-years-detail');
+      const trigger = e.target.closest('.month-branch');
+      if (inside || trigger) return;
+
+      monthYearsDetailEl.style.display = 'none';
+      monthYearsOpen = false;
+      currentMonthBranchChar = null;
+      currentMonthRootPillarsEl = null;
+    });
+
+    // -------------------------
+    // 顶部实时排盘：日柱地支点击提示（仅顶部 pillars）
+    // -------------------------
+    let liveDayBranchOpen = false;
+    let liveDayBranchChar = null;
+
+    function getLiveDayBranchDetailHTML(branchChar) {
+      const wx = getBranchWuxing(branchChar) || '';
+      const wxHex = wuxingHexMap[wx] || '#111827';
+      return [
+        `<span class="live-day-branch-title" style="color:${wxHex};">今日天时五行：${branchChar}${wx}</span>`,
+        `天时生衣服最有利🌟🌟🌟🌟🌟`,
+        `天时不生也不克，无功无过🌟`,
+        `衣服生天时，衣服克天时，耗泄自身，不利❌ ❌ ❌`,
+        `天时克衣服，非常不利❌ ❌ ❌ ❌ ❌`
+      ].join('<br>');
+    }
+
+    function showLiveDayBranchDetailAt(branchChar, branchEl) {
+      liveDayBranchDetailEl.innerHTML = getLiveDayBranchDetailHTML(branchChar);
+      liveDayBranchDetailEl.style.display = 'block';
+
+      const rect = branchEl.getBoundingClientRect();
+      const boxRect = liveDayBranchDetailEl.getBoundingClientRect();
+      const w = Math.min(window.innerWidth - 20, 320);
+      let left = (window.innerWidth - w) / 2; // 严格屏幕居中
+      if (left < 10) left = 10;
+      if (left + w > window.innerWidth - 10) left = window.innerWidth - 10 - w;
+      liveDayBranchDetailEl.style.width = `${w}px`;
+      liveDayBranchDetailEl.style.left = `${left}px`;
+
+      let top = rect.bottom + 6;
+      if (top + boxRect.height > window.innerHeight - 10) {
+        top = rect.top - boxRect.height - 8;
+      }
+      if (top < 10) top = 10;
+      liveDayBranchDetailEl.style.top = `${top}px`;
+    }
+
+    pillarsEl.addEventListener('click', (e) => {
+      const branchEl = e.target.closest('.live-day-branch');
+      if (!branchEl) return;
+      const branchChar = branchEl.getAttribute('data-branch');
+      if (!branchChar) return;
+
+      if (liveDayBranchOpen && liveDayBranchChar === branchChar) {
+        liveDayBranchDetailEl.style.display = 'none';
+        liveDayBranchOpen = false;
+        liveDayBranchChar = null;
+        return;
+      }
+
+      showLiveDayBranchDetailAt(branchChar, branchEl);
+      liveDayBranchOpen = true;
+      liveDayBranchChar = branchChar;
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!liveDayBranchOpen) return;
+      const inside = e.target.closest('#live-day-branch-detail');
+      const trigger = e.target.closest('.live-day-branch');
+      if (inside || trigger) return;
+      liveDayBranchDetailEl.style.display = 'none';
+      liveDayBranchOpen = false;
+      liveDayBranchChar = null;
+    });
+
+    // -------------------------
+    // 动态限制“日”的上限
+    // 阳历：按每月天数（闰年2月29天等）
+    // 农历：按本文件内的 monthDays(lYear, lMonth)
+    // -------------------------
+    function updateSolarDayMax() {
+      const y = parseInt(solarYearInput.value);
+      const m = parseInt(solarMonthInput.value);
+      if (!y || !m) return;
+      const maxDays = new Date(y, m, 0).getDate(); // JS 月份是 1-12
+      solarDayInput.max = maxDays;
+      const v = parseInt(solarDayInput.value);
+      if (v > maxDays) solarDayInput.value = maxDays;
+    }
+
+    function updateLunarDayMax() {
+      const y = parseInt(lunarYearInput.value);
+      const m = parseInt(lunarMonthInput.value);
+      if (!y || !m) return;
+      // 本文件的农历月天数（不处理闰月单独选择的 UI 情况）
+      const maxDays = monthDays(y, m);
+      lunarDayInput.max = maxDays;
+      const v = parseInt(lunarDayInput.value);
+      if (v > maxDays) lunarDayInput.value = maxDays;
+    }
+
+    function syncDayLimits() {
+      updateSolarDayMax();
+      updateLunarDayMax();
+    }
+
+    // 初始化一次
+    syncDayLimits();
+    syncCalendarPairByActiveSource();
+
+    // -------------------------
+    // 滑轮选择：禁止手动输入，鼠标滚轮上下切换数值
+    // -------------------------
+    function setupScrollPicker(inputEl) {
+      if (!inputEl) return;
+      inputEl.readOnly = true; // 禁止键盘输入
+      inputEl.addEventListener('keydown', (e) => { e.preventDefault(); });
+
+      const step = 1;
+      const wheelThrottleMs = 160; // 节流：避免连滚太快导致“划过”
+      let lastWheelTs = 0;
+
+      function applyDir(isWheelDown) {
+        const min = parseInt(inputEl.min || '0');
+        const max = parseInt(inputEl.max || '9999');
+        const cur = parseInt(inputEl.value);
+        const base = Number.isFinite(cur) ? cur : min;
+        // deltaY>0/拖拽向下：这里按“向下=减小”处理
+        const next = isWheelDown ? base - step : base + step;
+        const clamped = Math.min(max, Math.max(min, next));
+        inputEl.value = clamped;
+        syncDayLimits(); // 重新兜底修正“日”的 max
+        syncCalendarPairByActiveSource(); // 阳历/农历双向联动
+      }
+
+      inputEl.addEventListener('wheel', (e) => {
+        e.preventDefault(); // 防止页面滚动
+        const now = Date.now();
+        if (now - lastWheelTs < wheelThrottleMs) return;
+        lastWheelTs = now;
+        applyDir(e.deltaY > 0);
+      }, { passive: false });
+
+      // 兼容触屏：用“拖拽距离”逐步切换，减少误触划过
+      let dragging = false;
+      let lastY = 0;
+      const dragStepPx = 18;
+
+      inputEl.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+        dragging = true;
+        lastY = e.clientY;
+        try { inputEl.setPointerCapture(e.pointerId); } catch (_) {}
+        e.preventDefault();
+      }, { passive: false });
+
+      inputEl.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const dy = e.clientY - lastY;
+        if (Math.abs(dy) < dragStepPx) return;
+        applyDir(dy > 0); // 向下：减小
+        lastY = e.clientY;
+      }, { passive: false });
+
+      const stopDrag = () => { dragging = false; };
+      inputEl.addEventListener('pointerup', stopDrag);
+      inputEl.addEventListener('pointercancel', stopDrag);
+    }
+
+    [
+      solarYearInput, solarMonthInput, solarDayInput,
+      lunarYearInput, lunarMonthInput, lunarDayInput
+    ].forEach(setupScrollPicker);
+
+    function setMsg(text) {
+      if (!text) { msgEl.style.display = 'none'; msgEl.textContent = ''; return; }
+      msgEl.textContent = text;
+      msgEl.style.display = 'block';
+    }
+
+    function readShi() {
+      const idx = parseInt(shiSelect.value);
+      return shiList[idx] || shiList[0];
+    }
+
+    function renderPillar(title, pillarKey, tgIndex, dzIndex) {
+      const stem = stems[tgIndex];
+      const branch = branches[dzIndex];
+      const wxClass = getWuxingClass(tgIndex, dzIndex);
+
+      return `
+        <div class="pillar">
+          <div class="pillar-title">${title}</div>
+          <div class="pillar-main">
+            <div class="stem-only ${wxClass.stemClass} ${pillarKey === 'day' ? 'day-stem' : ''}"
+              data-stem="${stem}" data-pillar-key="${pillarKey}">${stem}</div>
+            <div class="branch-only ${wxClass.branchClass} ${pillarKey === 'month' ? 'month-branch' : ''}"
+              ${pillarKey === 'month' ? `data-branch="${branch}"` : ''}>${branch}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 顶部“实时排盘”用：不显示 年/月/日/时柱字样，只保留八字天干地支
+    function renderPillarNoTitle(pillarKey, tgIndex, dzIndex) {
+      const stem = stems[tgIndex];
+      const branch = branches[dzIndex];
+      const wxClass = getWuxingClass(tgIndex, dzIndex);
+
+      return `
+        <div class="pillar">
+          <div class="pillar-main">
+            <div class="stem-only ${wxClass.stemClass} ${pillarKey === 'day' ? 'day-stem' : ''}"
+              data-stem="${stem}" data-pillar-key="${pillarKey}">${stem}</div>
+            <div class="branch-only ${wxClass.branchClass} ${pillarKey === 'month' ? 'month-branch' : ''} ${pillarKey === 'day' ? 'live-day-branch' : ''}"
+              ${pillarKey === 'month' ? `data-branch="${branch}"` : ''}
+              ${pillarKey === 'day' ? `data-branch="${branch}"` : ''}>${branch}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function calc() {
+      const shi = readShi();
+      const timeSource = document.querySelector('input[name="timeSource"]:checked')?.value || 'solar';
+
+      let year, month, day;
+      let dCN = null;
+      let yearGZ, monthGZ, dayGZ, hourGZ;
+
+      if (timeSource === 'solar') {
+        year = parseInt(document.getElementById('solarYear').value);
+        month = parseInt(document.getElementById('solarMonth').value);
+        day = parseInt(document.getElementById('solarDay').value);
+
+        if (!year || !month || !day) {
+          setMsg('请输入完整的阳历：年/月/日');
+          return;
+        }
+
+        dCN = new Date(year, month - 1, day, shi.start, 0, 0);
+
+        yearGZ = getGanZhiYear(dCN);
+        monthGZ = getGanZhiMonth(dCN, yearGZ.tgIndex);
+        dayGZ = getGanZhiDay(dCN);
+        hourGZ = getGanZhiHour(dCN, dayGZ.tgIndex);
+      } else {
+        const lYear = parseInt(document.getElementById('lunarYear').value);
+        const lMonth = parseInt(document.getElementById('lunarMonth').value);
+        const lDay = parseInt(document.getElementById('lunarDay').value);
+
+        if (!lYear || !lMonth || !lDay) {
+          setMsg('请输入完整的农历：农历年/月/日');
+          return;
+        }
+
+        yearGZ = getGanZhiYearFromLunar(lYear);
+        monthGZ = getGanZhiMonthFromLunar(lYear, lMonth);
+
+        const solarDate = lunarToSolar(lYear, lMonth, lDay);
+        solarDate.setHours(shi.start, 0, 0);
+        dCN = solarDate;
+
+        dayGZ = getGanZhiDay(dCN);
+        hourGZ = getGanZhiHour(dCN, dayGZ.tgIndex);
+      }
+
+      setMsg('');
+      const html = [
+        renderPillar('年柱', 'year', yearGZ.tgIndex, yearGZ.dzIndex),
+        renderPillar('月柱', 'month', monthGZ.tgIndex, monthGZ.dzIndex),
+        renderPillar('日柱', 'day', dayGZ.tgIndex, dayGZ.dzIndex),
+        renderPillar('时柱', 'hour', hourGZ.tgIndex, hourGZ.dzIndex)
+      ].join('');
+      if (pillars2El) pillars2El.innerHTML = html;
+
+      // 如果已展开“日柱天干说明”，则在重新计算后也同步内容
+      const nextDayStemChar = stems[dayGZ.tgIndex];
+      if (dayDetailOpen && currentDayRootPillarsEl === pillars2El && currentDayStemChar === nextDayStemChar) {
+        const newStemEl = pillars2El.querySelector(`.day-stem[data-stem="${nextDayStemChar}"]`);
+        if (newStemEl) {
+          showDayStemDetailAt(nextDayStemChar, newStemEl);
+        } else {
+          updateDayStemDetail(nextDayStemChar);
+          applyDayStemColor(nextDayStemChar);
+          dayStemDetailEl.style.display = 'block';
+        }
+      }
+
+      // 若月柱弹层处于打开状态，则刷新为当前月柱地支对应的年份列表
+      const nextMonthBranchChar = branches[monthGZ.dzIndex];
+      if (monthYearsOpen && currentMonthRootPillarsEl === pillars2El) {
+        if (currentMonthBranchChar === nextMonthBranchChar) {
+          showMonthYearsDetailAt(nextMonthBranchChar, currentMonthRootPillarsEl || pillars2El, { preserveScroll: true });
+        } else {
+          monthYearsDetailEl.style.display = 'none';
+          monthYearsOpen = false;
+          currentMonthBranchChar = null;
+          currentMonthRootPillarsEl = null;
+        }
+      }
+    }
+
+    function syncInputs() {
+      const timeSource = document.querySelector('input[name="timeSource"]:checked')?.value || 'solar';
+      const isSolar = timeSource === 'solar';
+      solarYearInput.style.display = isSolar ? 'block' : 'none';
+      solarMonthInput.style.display = isSolar ? 'block' : 'none';
+      solarDayInput.style.display = isSolar ? 'block' : 'none';
+      lunarYearInput.style.display = isSolar ? 'none' : 'block';
+      lunarMonthInput.style.display = isSolar ? 'none' : 'block';
+      lunarDayInput.style.display = isSolar ? 'none' : 'block';
+    }
+
+    // -------------------------
+    // 顶部“实时排盘”：永远跟随实际当前时间
+    // 底部“选择时间”仅影响 pillars2（你点“排八字”那一块）
+    // -------------------------
+    let lastLiveYMD = null;
+    let lastLiveLunarStr = '';
+
+    function formatClockParts(now) {
+      const hh = now.getHours();
+      const mm = now.getMinutes();
+      const ss = now.getSeconds();
+      return { hh, mm, ss };
+    }
+
+    function updateLiveMeta(displayDate, clockDate) {
+      const y = displayDate.getFullYear();
+      const m = displayDate.getMonth() + 1;
+      const d = displayDate.getDate();
+      const ymd = `${y}-${m}-${d}`;
+
+      if (ymd !== lastLiveYMD) {
+        const lunar = solarToLunar(displayDate);
+        if (lunar) {
+          lastLiveLunarStr = `${lunar.lYear}年${lunarMonthToCn(lunar.lMonth)}月${lunarDayToCn(lunar.lDay)}`;
+        } else {
+          lastLiveLunarStr = '未知';
+        }
+        lastLiveYMD = ymd;
+      }
+
+      const shiIdx = currentShiIndex(clockDate.getHours());
+      const shi = shiList[shiIdx] || shiList[0];
+      const { hh, mm, ss } = formatClockParts(clockDate);
+
+      const lunarLine = `农历${lastLiveLunarStr}`;
+      const hhStr = String(hh).padStart(2, '0');
+      const mmStr = String(mm).padStart(2, '0');
+      const ssStr = String(ss).padStart(2, '0');
+      const solarLine = `阳历${y}年${m}月${d}号`;
+      const timeLine = `${shi.name}时 ${hhStr}:${mmStr}:${ssStr}`;
+
+      liveMetaEl.innerHTML = `
+        <span class="live-meta-line">${lunarLine}</span>
+        <span class="live-meta-line">${solarLine}</span>
+        <span class="live-meta-line live-meta-time">${timeLine}</span>
+      `;
+    }
+
+    function getLiveSelectedSolarDate() {
+      const timeSource = document.querySelector('input[name="timeSource"]:checked')?.value || 'solar';
+      if (timeSource === 'solar') {
+        const y = parseInt(solarYearInput.value);
+        const m = parseInt(solarMonthInput.value);
+        const d = parseInt(solarDayInput.value);
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d, 0, 0, 0);
+      }
+
+      const ly = parseInt(lunarYearInput.value);
+      const lm = parseInt(lunarMonthInput.value);
+      const ld = parseInt(lunarDayInput.value);
+      if (!ly || !lm || !ld) return null;
+      const solar = lunarToSolar(ly, lm, ld);
+      if (!solar || Number.isNaN(solar.getTime())) return null;
+      return solar;
+    }
+
+    function syncCalendarPairByActiveSource() {
+      const timeSource = document.querySelector('input[name="timeSource"]:checked')?.value || 'solar';
+      if (timeSource === 'solar') {
+        const y = parseInt(solarYearInput.value);
+        const m = parseInt(solarMonthInput.value);
+        const d = parseInt(solarDayInput.value);
+        if (!y || !m || !d) return;
+        const lunar = solarToLunar(new Date(y, m - 1, d));
+        if (!lunar) return;
+        lunarYearInput.value = lunar.lYear;
+        lunarMonthInput.value = lunar.lMonth;
+        lunarDayInput.value = lunar.lDay;
+      } else {
+        const ly = parseInt(lunarYearInput.value);
+        const lm = parseInt(lunarMonthInput.value);
+        const ld = parseInt(lunarDayInput.value);
+        if (!ly || !lm || !ld) return;
+        const solar = lunarToSolar(ly, lm, ld);
+        if (!solar || Number.isNaN(solar.getTime())) return;
+        solarYearInput.value = solar.getFullYear();
+        solarMonthInput.value = solar.getMonth() + 1;
+        solarDayInput.value = solar.getDate();
+      }
+    }
+
+    function updateLiveWear(dayBranchChar) {
+      const tianShiWx = getBranchWuxing(dayBranchChar) || '';
+
+      const bestWx = shengMap[tianShiWx] || '';        // 天时生
+      const worstWx = keMap[tianShiWx] || '';          // 天时克
+      const shengTianShiWx = getShengSource(tianShiWx); // 生天时
+      const keTianShiWx = getKeSource(tianShiWx);       // 克天时
+
+      const all = ['木', '火', '土', '金', '水'];
+      const neutralWx = all.find(wx => ![bestWx, worstWx, shengTianShiWx, keTianShiWx].includes(wx)) || '';
+
+      function getRateEmoji(wx) {
+        if (wx === bestWx) return '🌟🌟🌟';
+        if (wx === neutralWx) return '🌟';
+        if (wx === worstWx) return '❌❌❌';
+        return '❌❌';
+      }
+
+      function renderWearItem(wx) {
+        const hex = wuxingHexMap[wx] || '#cbd5e1';
+        const rate = getRateEmoji(wx);
+        return `
+          <div class="live-wear-item" data-wx="${wx}">
+            <div class="live-wear-swatch" style="background:${hex};">
+              <div>${wx}</div>
+              <div class="live-wear-rate-in">${rate}</div>
+            </div>
+          </div>
+        `;
+      }
+      const bestColor = wuxingHexMap[bestWx] || '#f5d68a';
+
+      liveWearEl.innerHTML = `
+        <div class="live-wear-body">
+          <div class="live-wear-grid">
+            <div class="live-wear-col live-wear-col-main">
+              <div class="live-wear-item live-wear-item-main" data-wx="${bestWx}">
+                <div class="live-wear-swatch" style="background:${wuxingHexMap[bestWx] || '#cbd5e1'};">
+                  <div>${bestWx}</div>
+                  <div class="live-wear-rate-in">${getRateEmoji(bestWx)}</div>
+                </div>
+              </div>
+            </div>
+            <div class="live-wear-col live-wear-col-sub">
+              ${renderWearItem(neutralWx)}
+              ${renderWearItem(shengTianShiWx)}
+            </div>
+            <div class="live-wear-col live-wear-col-sub">
+              ${renderWearItem(keTianShiWx)}
+              ${renderWearItem(worstWx)}
+            </div>
+          </div>
+          <div class="live-wear-aside" style="color:${bestColor};">
+            <div class="live-wear-aside-line">天时五行</div>
+            <div class="live-wear-aside-line">助运穿衣</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLiveNow() {
+      const now = new Date();
+      const selectedSolar = getLiveSelectedSolarDate();
+      const base = selectedSolar || now;
+      const shi = readShi();
+      const dCN = new Date(
+        base.getFullYear(),
+        base.getMonth(),
+        base.getDate(),
+        shi.start, // 八字按你选择的“时”联动
+        now.getMinutes(),
+        now.getSeconds()
+      );
+      const yearGZ = getGanZhiYear(dCN);
+      const monthGZ = getGanZhiMonth(dCN, yearGZ.tgIndex);
+      const dayGZ = getGanZhiDay(dCN);
+      const hourGZ = getGanZhiHour(dCN, dayGZ.tgIndex);
+      const dayBranchChar = branches[dayGZ.dzIndex];
+
+      const html = [
+        renderPillarNoTitle('year', yearGZ.tgIndex, yearGZ.dzIndex),
+        renderPillarNoTitle('month', monthGZ.tgIndex, monthGZ.dzIndex),
+        renderPillarNoTitle('day', dayGZ.tgIndex, dayGZ.dzIndex),
+        renderPillarNoTitle('hour', hourGZ.tgIndex, hourGZ.dzIndex)
+      ].join('');
+
+      pillarsEl.innerHTML = html;
+
+      // 同步已打开的弹层（仅当弹层来自“顶部实时框”时）
+      const nextDayStemChar = stems[dayGZ.tgIndex];
+      if (dayDetailOpen && currentDayRootPillarsEl === pillarsEl) {
+        if (currentDayStemChar === nextDayStemChar) {
+          const newStemEl = pillarsEl.querySelector(`.day-stem[data-stem="${nextDayStemChar}"]`);
+          if (newStemEl) showDayStemDetailAt(nextDayStemChar, newStemEl);
+        } else {
+          dayStemDetailEl.style.display = 'none';
+          dayDetailOpen = false;
+          currentDayStemChar = null;
+          currentDayRootPillarsEl = null;
+        }
+      }
+
+      const nextMonthBranchChar = branches[monthGZ.dzIndex];
+      if (monthYearsOpen && currentMonthRootPillarsEl === pillarsEl) {
+        if (currentMonthBranchChar === nextMonthBranchChar) {
+          showMonthYearsDetailAt(nextMonthBranchChar, pillarsEl, { preserveScroll: true });
+        } else {
+          monthYearsDetailEl.style.display = 'none';
+          monthYearsOpen = false;
+          currentMonthBranchChar = null;
+          currentMonthRootPillarsEl = null;
+        }
+      }
+
+      // 顶部实时日柱地支弹层：每秒重渲染后，若仍打开则重新定位
+      if (liveDayBranchOpen && liveDayBranchChar) {
+        const newBranchEl = pillarsEl.querySelector(`.live-day-branch[data-branch="${liveDayBranchChar}"]`);
+        if (newBranchEl) {
+          showLiveDayBranchDetailAt(liveDayBranchChar, newBranchEl);
+        } else {
+          liveDayBranchDetailEl.style.display = 'none';
+          liveDayBranchOpen = false;
+          liveDayBranchChar = null;
+        }
+      }
+
+      updateLiveMeta(dCN, now);
+      updateLiveWear(dayBranchChar);
+    }
+
+    function resetToRealtimeNow() {
+      const now = new Date();
+      // 重置为“当前现实时间”对应的阳历日期 + 时辰
+      timeSourceSolar.checked = true;
+      timeSourceLunar.checked = false;
+
+      solarYearInput.value = now.getFullYear();
+      solarMonthInput.value = now.getMonth() + 1;
+      solarDayInput.value = now.getDate();
+      shiSelect.value = currentShiIndex(now.getHours());
+
+      syncInputs();
+      syncDayLimits();
+      syncCalendarPairByActiveSource();
+      renderLiveNow();
+    }
+
+    // 初始化一次 + 每秒刷新（“秒”需要跳动）
+    renderLiveNow();
+    setInterval(renderLiveNow, 1000);
+
+    // 点“正在计时”的时间行：重置为当前现实时间
+    liveMetaEl.addEventListener('click', (e) => {
+      if (!e.target.closest('.live-meta-time')) return;
+      resetToRealtimeNow();
+    });
+
+    // 底部（选择时间）默认渲染一次（当前时间）
+    syncInputs();
+    calc();
+
+    timeSourceSolar.addEventListener('change', () => { syncInputs(); syncCalendarPairByActiveSource(); renderLiveNow(); });
+    timeSourceLunar.addEventListener('change', () => { syncInputs(); syncCalendarPairByActiveSource(); renderLiveNow(); });
+
+    if (btnCalc) {
+      btnCalc.addEventListener('click', function() {
+        calc();
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
+
