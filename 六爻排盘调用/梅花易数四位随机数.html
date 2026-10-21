@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>梅花易数四位随机数</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      display: flex;
+      align-items: safe center;
+      justify-content: safe center;
+    }
+
+    .card {
+      width: 90%;
+      max-width: 600px;
+      background: #f5f5f5;
+      border: none;
+      border-radius: 20px;
+      padding: 0;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      margin: 24px 0;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+      color: #ffffff;
+      padding: 40px 30px;
+      text-align: center;
+      position: relative;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+      opacity: 0.3;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 2.5em;
+      font-weight: 300;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .header p {
+      margin: 10px 0 0 0;
+      font-size: 0.55em;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+    }
+
+    .content { padding: 40px 30px; }
+
+    label {
+      display: block;
+      color: #333;
+      font-size: 0.95em;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    input {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px 12px;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      background: #fff;
+      color: #333;
+      font-size: 2em;
+      letter-spacing: 0.28em;
+      text-align: center;
+      font-family: "Courier New", monospace;
+    }
+
+    input:focus {
+      outline: 2px solid #333;
+      border-color: transparent;
+    }
+
+    .hint {
+      min-height: 1.4em;
+      margin: 8px 0 0;
+      color: #555;
+      font-size: 0.8em;
+      text-align: center;
+    }
+
+    .hint.error { color: #8a2e28; }
+
+    button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+      color: #fff;
+      font-size: 1.05em;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+
+    .main-result {
+      text-align: center;
+      margin-bottom: 10px;
+      margin-top: 28px;
+    }
+
+    .result-number {
+      font-size: 2em;
+      font-weight: 600;
+      color: #333;
+      margin: 10px 0;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+      transform: translateY(-20px);
+    }
+
+    .result-outcome {
+      font-size: 8.75em;
+      font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(135deg, #333, #1a1a1a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 20px 0;
+      transform: translateY(-20px);
+    }
+
+    .result-outcome.pending {
+      font-size: 4em;
+      line-height: 1.1;
+      transform: none;
+      margin: 8px 0 0;
+    }
+
+    .result-outcome.long {
+      font-size: 2.5em;
+      line-height: 1.25;
+      transform: none;
+      margin: 8px 0 0;
+    }
+
+    .info-container:empty { display: none; }
+
+    .info-container {
+      margin-top: 0;
+      padding: 25px;
+      background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+      border-radius: 15px;
+      border-left: 4px solid #333;
+      font-weight: 500;
+      line-height: 1.6;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .info-item {
+      margin: 8px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #666;
+    }
+
+    .info-item:last-child { border-bottom: none; }
+
+    .info-label {
+      color: #555;
+      font-weight: 500;
+      font-size: 0.8em;
+    }
+
+    .info-value {
+      color: #333;
+      font-weight: 600;
+      font-size: 0.8em;
+      font-family: "Courier New", monospace;
+    }
+
+    .info-note {
+      display: block;
+      margin-top: 2px;
+      color: #888;
+      font-size: 0.75em;
+      font-weight: 500;
+    }
+
+    .relation-detail {
+      margin: 0 0 8px;
+      color: #777;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .grade-legend {
+      margin: 4px 0 0;
+      color: #a3a3a3;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.7;
+      text-align: left;
+      white-space: pre-line;
+    }
+
+    .gua-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .gua-col { flex: 1 1 0; min-width: 0; overflow: hidden; }
+
+    .gua-title {
+      color: #333;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+
+    .gua-caption {
+      margin: 4px 0 0;
+      color: #777;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    .moving-note { margin-top: 12px; white-space: pre-line; }
+
+    .chart { margin-top: 8px; }
+
+    .yao-list { width: 100%; }
+
+    .yao {
+      display: grid;
+      grid-template-columns: 14px 1fr;
+      align-items: center;
+      gap: 4px;
+      height: 16px;
+    }
+
+    .yao + .yao { margin-top: 6px; }
+    .yao.split { margin-top: 12px; }
+
+    .yao b {
+      font-weight: 500;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .yao.move b { color: #1a1a1a; }
+
+    .bars { display: flex; gap: 4px; height: 7px; }
+
+    .bars i {
+      display: block;
+      height: 7px;
+      flex: 1;
+      background: #1a1a1a;
+      border-radius: 1px;
+    }
+
+    .bars.wx-金 i { background: #f7f7f7; box-shadow: inset 0 0 0 1px #8d8d8d; }
+    .bars.wx-木 i { background: #2f9e4f; }
+    .bars.wx-水 i { background: #2a6cb5; }
+    .bars.wx-火 i { background: #d64545; }
+    .bars.wx-土 i { background: #c8962e; }
+
+    .side { font-size: 0.85em; color: #333; font-weight: 600; }
+    .side p { margin: 0 0 4px; }
+
+    .footer {
+      text-align: center;
+      padding: 20px 30px;
+      color: #555;
+      font-size: 0.7em;
+      line-height: 1.5;
+    }
+
+    .logic-container { text-align: center; margin-top: 15px; }
+
+    .logic-link {
+      color: #333;
+      text-decoration: none;
+      font-size: 0.9em;
+      cursor: pointer;
+    }
+
+    .logic-link:hover {
+      color: #1a1a1a;
+      text-decoration: underline;
+    }
+
+    .tooltip { position: relative; display: inline-block; }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 75vw;
+      max-width: 600px;
+      background-color: #1a1a1a;
+      color: #fff;
+      text-align: left;
+      border-radius: 8px;
+      padding: 20px;
+      position: fixed;
+      z-index: 1000;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.85em;
+      line-height: 1.4;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .tooltip:hover .tooltiptext,
+    .tooltip:focus-within .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .tooltip-step { margin: 8px 0; font-weight: 500; }
+
+    .tooltip-element {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .tooltip-element-item {
+      background: rgba(255,255,255,0.1);
+      padding: 3px 6px;
+      border-radius: 4px;
+      text-align: left;
+      font-size: 0.85em;
+    }
+
+    @media (max-width: 600px) {
+      .card { width: 95%; margin: 20px 0; }
+      .header { padding: 30px 20px; }
+      .header h1 { font-size: 2em; }
+      .content { padding: 30px 20px; }
+      .result-number { font-size: 1.5em; }
+      .result-outcome { font-size: 6.25em; }
+      .result-outcome.long { font-size: 1.8em; }
+      .gua-row { gap: 4px; }
+      .yao b { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>梅花易数</h1>
+      <p>心里默念所问之事，再输入四位数字</p>
+    </div>
+    <div class="content">
+      <form id="form">
+        <label for="digits">输入起卦数字</label>
+        <input id="digits" name="digits" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="hint">
+        <p id="hint" class="hint">两位及以上。偶数从中间分开，奇数前面多一位。可以 0 开头。</p>
+        <button type="submit">起卦并分析</button>
+      </form>
+      <div class="main-result">
+        <div id="outcome" class="result-outcome pending">--</div>
+        <div id="headline" class="result-number">--</div>
+        <p id="relationDetail" class="relation-detail" hidden></p>
+      </div>
+      <div id="info" class="info-container"></div>
+    </div>
+    <div class="footer">
+      <div>*注 吉凶是简化体用规则下的象意，不等于事情必然发生。若问题涉及赌博或押注，卦象不代表胜率，也不能保证某个选项获胜。</div>
+    </div>
+  </div>
+
+  <script id="engine">
+    const BAGUA = [
+      { name: "乾", number: 1, wuxing: "金", symbol: "天", yao: [1, 1, 1] },
+      { name: "兑", number: 2, wuxing: "金", symbol: "泽", yao: [1, 1, 0] },
+      { name: "离", number: 3, wuxing: "火", symbol: "火", yao: [1, 0, 1] },
+      { name: "震", number: 4, wuxing: "木", symbol: "雷", yao: [1, 0, 0] },
+      { name: "巽", number: 5, wuxing: "木", symbol: "风", yao: [0, 1, 1] },
+      { name: "坎", number: 6, wuxing: "水", symbol: "水", yao: [0, 1, 0] },
+      { name: "艮", number: 7, wuxing: "土", symbol: "山", yao: [0, 0, 1] },
+      { name: "坤", number: 8, wuxing: "土", symbol: "地", yao: [0, 0, 0] }
+    ];
+
+    const BAGUA_BY_NUMBER = Object.fromEntries(BAGUA.map((g) => [g.number, g]));
+    const BAGUA_BY_YAO = Object.fromEntries(BAGUA.map((g) => [g.yao.join(""), g]));
+
+    const HEXAGRAMS = {
+      "1-1": "乾为天", "1-2": "天泽履", "1-3": "天火同人", "1-4": "天雷无妄",
+      "1-5": "天风姤", "1-6": "天水讼", "1-7": "天山遁", "1-8": "天地否",
+      "2-1": "泽天夬", "2-2": "兑为泽", "2-3": "泽火革", "2-4": "泽雷随",
+      "2-5": "泽风大过", "2-6": "泽水困", "2-7": "泽山咸", "2-8": "泽地萃",
+      "3-1": "火天大有", "3-2": "火泽睽", "3-3": "离为火", "3-4": "火雷噬嗑",
+      "3-5": "火风鼎", "3-6": "火水未济", "3-7": "火山旅", "3-8": "火地晋",
+      "4-1": "雷天大壮", "4-2": "雷泽归妹", "4-3": "雷火丰", "4-4": "震为雷",
+      "4-5": "雷风恒", "4-6": "雷水解", "4-7": "雷山小过", "4-8": "雷地豫",
+      "5-1": "风天小畜", "5-2": "风泽中孚", "5-3": "风火家人", "5-4": "风雷益",
+      "5-5": "巽为风", "5-6": "风水涣", "5-7": "风山渐", "5-8": "风地观",
+      "6-1": "水天需", "6-2": "水泽节", "6-3": "水火既济", "6-4": "水雷屯",
+      "6-5": "水风井", "6-6": "坎为水", "6-7": "水山蹇", "6-8": "水地比",
+      "7-1": "山天大畜", "7-2": "山泽损", "7-3": "山火贲", "7-4": "山雷颐",
+      "7-5": "山风蛊", "7-6": "山水蒙", "7-7": "艮为山", "7-8": "山地剥",
+      "8-1": "地天泰", "8-2": "地泽临", "8-3": "地火明夷", "8-4": "地雷复",
+      "8-5": "地风升", "8-6": "地水师", "8-7": "地山谦", "8-8": "坤为地"
+    };
+
+    const LINE_LABELS = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"];
+
+    const SHENG = { "木": "火", "火": "土", "土": "金", "金": "水", "水": "木" };
+    const KE = { "木": "土", "土": "水", "水": "火", "火": "金", "金": "木" };
+
+    const GRADES = {
+      "用生体": {
+        level: "大吉",
+        tone: "da",
+        text: "传统象意上，所问之事对主体有生助，常取得助、有利之象。"
+      },
+      "体用比和": {
+        level: "中吉",
+        tone: "zhong",
+        text: "传统象意上，主体与所问之事协调、相应。"
+      },
+      "体克用": {
+        level: "小吉",
+        tone: "xiao",
+        text: "传统象意上，主体能够制约所问之事，可取有所掌控、有所获得之象。"
+      },
+      "体生用": {
+        level: "失气／有所损耗",
+        tone: "shi",
+        text: "传统象意上，主体之气外泄，可能有付出、消耗或损耗。"
+      },
+      "用克体": {
+        level: "凶",
+        tone: "xiong",
+        text: "传统象意上，所问之事对主体形成克制，可取受阻、承压或不利之象。"
+      }
+    };
+
+    function validateDigits(raw) {
+      const text = String(raw == null ? "" : raw).trim();
+      if (!/^\d*$/.test(text)) {
+        return { ok: false, message: "只能输入数字，不能含字母、负号、小数点或其他字符。" };
+      }
+      if (text.length < 2) {
+        return { ok: false, message: "请至少输入两位数字，才能分成上卦和下卦。" };
+      }
+      return { ok: true, digits: text };
+    }
+
+    function splitDigits(digits) {
+      const frontLength = Math.ceil(digits.length / 2);
+      return {
+        upper: digits.slice(0, frontLength),
+        lower: digits.slice(frontLength)
+      };
+    }
+
+    function digitMod(digits, divisor) {
+      let remainder = 0;
+      for (let i = 0; i < digits.length; i++) {
+        remainder = (remainder * 10 + Number(digits[i])) % divisor;
+      }
+      return remainder;
+    }
+
+    function trigramFromPair(pair) {
+      const remainder = digitMod(pair, 8);
+      const number = remainder === 0 ? 8 : remainder;
+      return {
+        trigram: BAGUA_BY_NUMBER[number],
+        value: pair,
+        remainder: remainder
+      };
+    }
+
+    function matchTrigram(yao) {
+      const found = BAGUA_BY_YAO[yao.join("")];
+      if (!found) throw new Error("无法识别三爻卦：" + yao.join(""));
+      return found;
+    }
+
+    function hexagramName(upper, lower) {
+      const name = HEXAGRAMS[upper.number + "-" + lower.number];
+      if (!name) throw new Error("缺少六十四卦：" + upper.name + lower.name);
+      return name;
+    }
+
+    function movingFromDigits(digits) {
+      const parts = digits.split("").map(Number);
+      const sum = parts.reduce((total, n) => total + n, 0);
+      const remainder = sum % 6;
+      const position = remainder === 0 ? 6 : remainder;
+      return {
+        parts: parts,
+        sum: sum,
+        remainder: remainder,
+        position: position,
+        index: position - 1,
+        label: LINE_LABELS[position - 1]
+      };
+    }
+
+    function splitLines(lines) {
+      return {
+        lower: matchTrigram(lines.slice(0, 3)),
+        upper: matchTrigram(lines.slice(3, 6)),
+        lines: lines.slice()
+      };
+    }
+
+    function judgeTiYong(upper, lower, moving) {
+      const inLower = moving.position <= 3;
+      return {
+        ti: inLower ? upper : lower,
+        yong: inLower ? lower : upper,
+        reason: inLower
+          ? "动爻在" + moving.label + "，位于下卦（初爻、二爻、三爻）。下卦为用卦，上卦为体卦。"
+          : "动爻在" + moving.label + "，位于上卦（四爻、五爻、上爻）。上卦为用卦，下卦为体卦。"
+      };
+    }
+
+    function judgeRelation(ti, yong) {
+      let key = "";
+      if (ti.wuxing === yong.wuxing) key = "体用比和";
+      else if (SHENG[yong.wuxing] === ti.wuxing) key = "用生体";
+      else if (KE[ti.wuxing] === yong.wuxing) key = "体克用";
+      else if (SHENG[ti.wuxing] === yong.wuxing) key = "体生用";
+      else if (KE[yong.wuxing] === ti.wuxing) key = "用克体";
+      else throw new Error("无法判断体用关系");
+      const grade = GRADES[key];
+      return {
+        key: key,
+        level: grade.level,
+        tone: grade.tone,
+        text: grade.text,
+        detail: relationDetail(key, ti, yong)
+      };
+    }
+
+    function relationDetail(key, ti, yong) {
+      if (key === "体用比和") return "体卦" + ti.name + ti.wuxing + "与用卦" + yong.name + yong.wuxing + "五行相同。";
+      if (key === "用生体") return "用卦" + yong.name + yong.wuxing + "生体卦" + ti.name + ti.wuxing + "。";
+      if (key === "体克用") return "体卦" + ti.name + ti.wuxing + "克用卦" + yong.name + yong.wuxing + "。";
+      if (key === "体生用") return "体卦" + ti.name + ti.wuxing + "生用卦" + yong.name + yong.wuxing + "。";
+      return "用卦" + yong.name + yong.wuxing + "克体卦" + ti.name + ti.wuxing + "。";
+    }
+
+    function cast(raw) {
+      const check = validateDigits(raw);
+      if (!check.ok) return check;
+
+      const digits = check.digits;
+      const parts = splitDigits(digits);
+      const upperCast = trigramFromPair(parts.upper);
+      const lowerCast = trigramFromPair(parts.lower);
+      const upper = upperCast.trigram;
+      const lower = lowerCast.trigram;
+      const moving = movingFromDigits(digits);
+      const benLines = lower.yao.concat(upper.yao);
+      const bianLines = benLines.slice();
+      bianLines[moving.index] = bianLines[moving.index] === 1 ? 0 : 1;
+      const bian = splitLines(bianLines);
+      const huLower = matchTrigram([benLines[1], benLines[2], benLines[3]]);
+      const huUpper = matchTrigram([benLines[2], benLines[3], benLines[4]]);
+      const tiyong = judgeTiYong(upper, lower, moving);
+      const relation = judgeRelation(tiyong.ti, tiyong.yong);
+
+      return {
+        ok: true,
+        digits: digits,
+        upper: upper,
+        lower: lower,
+        upperPart: parts.upper,
+        lowerPart: parts.lower,
+        upperRemainder: upperCast.remainder,
+        lowerRemainder: lowerCast.remainder,
+        ben: { name: hexagramName(upper, lower), lines: benLines, upper: upper, lower: lower },
+        moving: moving,
+        bian: {
+          name: hexagramName(bian.upper, bian.lower),
+          lines: bian.lines,
+          upper: bian.upper,
+          lower: bian.lower
+        },
+        hu: {
+          name: hexagramName(huUpper, huLower),
+          lines: huLower.yao.concat(huUpper.yao),
+          upper: huUpper,
+          lower: huLower
+        },
+        ti: tiyong.ti,
+        yong: tiyong.yong,
+        tiYongReason: tiyong.reason,
+        relation: relation
+      };
+    }
+
+    function runSelfTests() {
+      const checks = [];
+      function assert(name, pass, detail) {
+        checks.push({ name: name, pass: !!pass, detail: detail || "" });
+      }
+
+      assert("八卦为 8 个", BAGUA.length === 8);
+      assert("六十四卦为 64 个", Object.keys(HEXAGRAMS).length === 64);
+      BAGUA.forEach((g) => {
+        assert(g.name + "爻形可回查", matchTrigram(g.yao).name === g.name);
+      });
+      for (let u = 1; u <= 8; u++) {
+        for (let l = 1; l <= 8; l++) {
+          const upper = BAGUA_BY_NUMBER[u];
+          const lower = BAGUA_BY_NUMBER[l];
+          const name = hexagramName(upper, lower);
+          assert("卦名 " + u + "-" + l, typeof name === "string" && name.length >= 2, name);
+        }
+      }
+
+      const a = cast("3782");
+      assert("A 可起卦", a.ok);
+      assert("A 上卦巽", a.upper.name === "巽" && a.upper.wuxing === "木");
+      assert("A 下卦兑", a.lower.name === "兑" && a.lower.wuxing === "金");
+      assert("A 本卦风泽中孚", a.ben.name === "风泽中孚");
+      assert("A 动爻二爻", a.moving.label === "二爻" && a.moving.sum === 20 && a.moving.remainder === 2);
+      assert("A 变卦风雷益", a.bian.name === "风雷益");
+      assert("A 互卦山雷颐", a.hu.name === "山雷颐");
+      assert("A 体巽木", a.ti.name === "巽" && a.ti.wuxing === "木");
+      assert("A 用兑金", a.yong.name === "兑" && a.yong.wuxing === "金");
+      assert("A 关系用克体", a.relation.key === "用克体" && a.relation.detail.indexOf("金") !== -1);
+      assert("A 等级凶", a.relation.level === "凶");
+      assert("A 本卦爻", a.ben.lines.join("") === "110011");
+      assert("A 变卦由二爻翻转", a.bian.lines.join("") === "100011");
+
+      const b = cast("1111");
+      assert("B 上卦离", b.upper.name === "离");
+      assert("B 下卦离", b.lower.name === "离");
+      assert("B 本卦离为火", b.ben.name === "离为火");
+      assert("B 动爻四爻", b.moving.label === "四爻");
+      assert("B 变卦山火贲", b.bian.name === "山火贲");
+      assert("B 互卦泽风大过", b.hu.name === "泽风大过");
+      assert("B 体用皆离火", b.ti.name === "离" && b.yong.name === "离");
+      assert("B 比和中吉", b.relation.key === "体用比和" && b.relation.level === "中吉");
+
+      const c = cast("1234");
+      assert("C 上卦震", c.upper.name === "震" && c.upper.wuxing === "木");
+      assert("C 下卦兑", c.lower.name === "兑" && c.lower.wuxing === "金");
+      assert("C 本卦雷泽归妹", c.ben.name === "雷泽归妹");
+      assert("C 动爻四爻", c.moving.label === "四爻");
+      assert("C 变卦地泽临", c.bian.name === "地泽临");
+      assert("C 互卦水火既济", c.hu.name === "水火既济");
+      assert("C 体兑金", c.ti.name === "兑" && c.ti.wuxing === "金");
+      assert("C 用震木", c.yong.name === "震" && c.yong.wuxing === "木");
+      assert("C 体克用小吉", c.relation.key === "体克用" && c.relation.level === "小吉");
+
+      const lead = cast("0372");
+      assert("前导零保留", lead.digits === "0372");
+      assert("0372 上离下坤", lead.upper.name === "离" && lead.lower.name === "坤");
+      assert("00 为坤", cast("0000").upper.name === "坤" && cast("0000").lower.name === "坤");
+      assert("0000 上爻", cast("0000").moving.label === "上爻");
+
+      const great = cast("1214");
+      assert("用生体大吉", great.relation.key === "用生体" && great.relation.level === "大吉");
+      const drain = cast("0403");
+      assert("体生用失气", drain.relation.key === "体生用" && drain.relation.level === "失气／有所损耗");
+      const control = cast("0904");
+      assert("体克用小吉样例", control.relation.key === "体克用" && control.ben.name === "天雷无妄");
+
+      assert("同数结果稳定", JSON.stringify(cast("3782")) === JSON.stringify(cast("3782")));
+      assert("两位从中间分开", cast("37").upperPart === "3" && cast("37").lowerPart === "7" && cast("37").upper.name === "离" && cast("37").lower.name === "艮");
+      assert("三位前面多一位", cast("377").upperPart === "37" && cast("377").lowerPart === "7" && cast("377").upper.name === "巽" && cast("377").lower.name === "艮");
+      assert("五位前面多一位", cast("37821").upperPart === "378" && cast("37821").lowerPart === "21" && cast("37821").upper.name === "兑" && cast("37821").lower.name === "巽");
+      assert("一位拒绝", cast("7").ok === false);
+      assert("字母拒绝", cast("37a2").ok === false);
+      assert("空值拒绝", cast("").ok === false);
+
+      const expected = [
+        { input: "3782", upper: "巽", lower: "兑", ben: "风泽中孚", dong: "二爻", bian: "风雷益", hu: "山雷颐", ti: "巽", yong: "兑", relation: "用克体", level: "凶" },
+        { input: "1111", upper: "离", lower: "离", ben: "离为火", dong: "四爻", bian: "山火贲", hu: "泽风大过", ti: "离", yong: "离", relation: "体用比和", level: "中吉" },
+        { input: "1234", upper: "震", lower: "兑", ben: "雷泽归妹", dong: "四爻", bian: "地泽临", hu: "水火既济", ti: "兑", yong: "震", relation: "体克用", level: "小吉" }
+      ];
+      const conflicts = [];
+      expected.forEach((item) => {
+        const got = cast(item.input);
+        const fields = [
+          ["上卦", got.upper.name, item.upper],
+          ["下卦", got.lower.name, item.lower],
+          ["本卦", got.ben.name, item.ben],
+          ["动爻", got.moving.label, item.dong],
+          ["变卦", got.bian.name, item.bian],
+          ["互卦", got.hu.name, item.hu],
+          ["体卦", got.ti.name, item.ti],
+          ["用卦", got.yong.name, item.yong],
+          ["五行关系", got.relation.key, item.relation],
+          ["吉凶", got.relation.level, item.level]
+        ];
+        fields.forEach((field) => {
+          const ok = field[1] === field[2];
+          assert(item.input + " " + field[0], ok, field[1] + " / " + field[2]);
+          if (!ok) conflicts.push({ input: item.input, item: field[0], actual: field[1], written: field[2] });
+        });
+      });
+
+      return {
+        pass: checks.filter((item) => item.pass).length,
+        fail: checks.filter((item) => !item.pass).length,
+        failed: checks.filter((item) => !item.pass),
+        conflicts: conflicts,
+        cases: { "3782": a, "1111": b, "1234": c }
+      };
+    }
+
+    globalThis.MeihuaEngine = {
+      BAGUA: BAGUA,
+      HEXAGRAMS: HEXAGRAMS,
+      cast: cast,
+      validateDigits: validateDigits,
+      runSelfTests: runSelfTests
+    };
+  </script>
+
+  <script>
+    const engine = globalThis.MeihuaEngine;
+    const form = document.getElementById("form");
+    const input = document.getElementById("digits");
+    const hint = document.getElementById("hint");
+    const outcomeEl = document.getElementById("outcome");
+    const headlineEl = document.getElementById("headline");
+    const detailEl = document.getElementById("relationDetail");
+    const infoEl = document.getElementById("info");
+    const GRADE_LEGEND = [
+      "大吉，用生体。用卦五行生体卦五行。所问之事对主体有生助，常取得助、有利之象。",
+      "中吉，体用比和。体卦和用卦五行相同。主体与所问之事协调、相应。",
+      "小吉，体克用。体卦五行克用卦五行。主体能够制约所问之事，可取有所掌控、有所获得之象。",
+      "失气／有所损耗，体生用。体卦五行生用卦五行。主体之气外泄，可能有付出、消耗或损耗。",
+      "凶，用克体。用卦五行克体卦五行。所问之事对主体形成克制，可取受阻、承压或不利之象。"
+    ].join("\n");
+
+    function setHint(message, isError) {
+      hint.textContent = message;
+      hint.className = isError ? "hint error" : "hint";
+    }
+
+    input.addEventListener("input", function () {
+      const digitsOnly = input.value.replace(/\D/g, "");
+      if (digitsOnly !== input.value) {
+        input.value = digitsOnly;
+        setHint("已去掉非数字字符。请输入两位及以上的数字。", true);
+        return;
+      }
+      if (digitsOnly.length >= 2) setHint("可以起卦。", false);
+      else if (digitsOnly.length === 0) setHint("两位及以上。偶数从中间分开，奇数前面多一位。可以 0 开头。", false);
+      else setHint(engine.validateDigits(digitsOnly).message, true);
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      const outcome = engine.cast(input.value);
+      if (!outcome.ok) {
+        setHint(outcome.message, true);
+        return;
+      }
+      setHint("已按 " + outcome.digits + " 起卦。", false);
+      render(outcome);
+      outcomeEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    function render(data) {
+      outcomeEl.textContent = data.relation.level;
+      outcomeEl.className = "result-outcome" + (data.relation.level.length > 2 ? " long" : "");
+      headlineEl.textContent = data.relation.key;
+      detailEl.textContent = data.relation.detail;
+      detailEl.hidden = false;
+      infoEl.textContent = "";
+
+      addGuaRow(data);
+      const meaning = addItem("传统象意", data.relation.text);
+      const legend = document.createElement("p");
+      legend.className = "grade-legend";
+      legend.textContent = GRADE_LEGEND;
+      meaning.appendChild(legend);
+    }
+
+    function addItem(label, value, extra) {
+      const item = document.createElement("div");
+      item.className = "info-item";
+      const labelEl = document.createElement("span");
+      labelEl.className = "info-label";
+      labelEl.textContent = label + "：";
+      const valueEl = document.createElement("span");
+      valueEl.className = "info-value";
+      valueEl.textContent = value;
+      item.appendChild(labelEl);
+      item.appendChild(valueEl);
+      if (extra) {
+        const note = document.createElement("span");
+        note.className = "info-note";
+        note.textContent = extra;
+        item.appendChild(note);
+      }
+      infoEl.appendChild(item);
+      return item;
+    }
+
+    function addGuaRow(data) {
+      const item = document.createElement("div");
+      item.className = "info-item";
+      const row = document.createElement("div");
+      row.className = "gua-row";
+      row.appendChild(guaColumn("本卦", data.ben, data.moving.position, "动", data));
+      row.appendChild(guaColumn("变卦", data.bian, data.moving.position, "变", null));
+      row.appendChild(guaColumn("互卦", data.hu, 0, "", null));
+      const note = document.createElement("p");
+      note.className = "info-note moving-note";
+      note.textContent = [
+        "输入数字：" + data.digits,
+        "上卦" + data.upper.name + data.upper.wuxing + "：前面 " + data.upperPart + "，除以 8 mod " + data.upperRemainder + "。",
+        "下卦" + data.lower.name + data.lower.wuxing + "：后面 " + data.lowerPart + "，除以 8 mod " + data.lowerRemainder + "。",
+        "（余数对应：1-乾、2-兑、3-离、4-震、5-巽、6-坎、7-艮、0-坤）",
+        "动爻：" + data.moving.label + "。" + data.moving.parts.join(" + ") + " = " + data.moving.sum + "，除以 6 余 " + data.moving.remainder + "。余数 0 为上爻，从下往上数。",
+        data.tiYongReason
+      ].join("\n");
+      item.appendChild(row);
+      item.appendChild(note);
+      infoEl.appendChild(item);
+      row.querySelectorAll(".gua-title").forEach(fitTitle);
+    }
+
+    function fitTitle(el) {
+      let size = 11;
+      el.style.fontSize = size + "px";
+      while (el.scrollWidth > el.clientWidth && size > 8) {
+        size -= 0.5;
+        el.style.fontSize = size + "px";
+      }
+    }
+
+    function guaColumn(label, gua, markPosition, markText, castData) {
+      const column = document.createElement("div");
+      column.className = "gua-col";
+      const title = document.createElement("div");
+      title.className = "gua-title";
+      title.textContent = label + "｜" + gua.name;
+      const list = document.createElement("div");
+      list.className = "yao-list";
+      for (let i = 5; i >= 0; i--) {
+        const yaoRow = document.createElement("div");
+        yaoRow.className = "yao" + (i === 2 ? " split" : "") + (i + 1 === markPosition ? " move" : "");
+        const mark = document.createElement("b");
+        mark.textContent = i + 1 === markPosition ? markText : ["初", "二", "三", "四", "五", "上"][i];
+        const bars = document.createElement("div");
+        const wuxing = i < 3 ? gua.lower.wuxing : gua.upper.wuxing;
+        bars.className = "bars wx-" + wuxing;
+        bars.appendChild(document.createElement("i"));
+        if (gua.lines[i] === 0) bars.appendChild(document.createElement("i"));
+        yaoRow.appendChild(mark);
+        yaoRow.appendChild(bars);
+        list.appendChild(yaoRow);
+      }
+      const lowerIsYong = castData && castData.moving.position <= 3;
+      const upperCaption = document.createElement("p");
+      upperCaption.className = "gua-caption";
+      upperCaption.textContent = "上" + gua.upper.name + gua.upper.wuxing + (castData ? (lowerIsYong ? "(体)" : "(用)") : "");
+      const lowerCaption = document.createElement("p");
+      lowerCaption.className = "gua-caption";
+      lowerCaption.textContent = "下" + gua.lower.name + gua.lower.wuxing + (castData ? (lowerIsYong ? "(用)" : "(体)") : "");
+      column.appendChild(title);
+      column.appendChild(list);
+      column.appendChild(upperCaption);
+      column.appendChild(lowerCaption);
+      return column;
+    }
+  </script>
+</body>
+</html>
